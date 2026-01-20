@@ -16,6 +16,7 @@ jobs:
           host: ${{ secrets.DEV_SERVER_HOST }}
           username: ubuntu
           key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          command_timeout: 20m    # 이거 추가 (빌드 오래 걸려서)
           script: |
             cd /home/ubuntu/mine/backend/4-team-IMYME-be
             git fetch origin dev
