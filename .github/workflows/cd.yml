@@ -26,7 +26,8 @@ jobs:
           key: ${{ secrets.DEV_SERVER_SSH_KEY }}
           script: |
             # 백엔드 디렉토리 이동
-            cd /home/ubuntu/mine/backend  # 여기 수정
+            cd /home/ubuntu/mine/backend/4-team-IMYME-be
+  # 여기 수정
 
             # 최신 코드 가져오기
             git fetch origin dev
