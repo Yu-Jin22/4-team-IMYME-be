@@ -1,4 +1,4 @@
-name: Backend CD (v 1.5)
+name: Backend CD (v 1.6)
 
 on:
   push:
@@ -18,6 +18,7 @@ jobs:
           key: ${{ secrets.DEV_SERVER_SSH_KEY }}
           command_timeout: 20m
           script: |
+              cat > /tmp/deploy.sh << 'EOF'
               cd /home/ubuntu/mine/backend/4-team-IMYME-be
               git fetch origin dev
               git reset --hard origin/dev
@@ -38,7 +39,12 @@ jobs:
                 cat /home/ubuntu/logs/backend.log
                 exit 1
               fi
-
+              EOF
+              chmod +x /tmp/deploy.sh
+              nohup /tmp/deploy.sh > /home/ubuntu/logs/deploy.log 2>&1 &
+              sleep 30
+              cat /home/ubuntu/logs/deploy.log
+              pgrep -f 'java.*jar' && echo "✅ Success" || echo "❌ Failed"
   notify-success:
     runs-on: ubuntu-latest
     needs: deploy-dev
