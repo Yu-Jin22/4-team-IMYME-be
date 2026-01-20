@@ -16,6 +16,7 @@ jobs:
           host: ${{ secrets.DEV_SERVER_HOST }}
           username: ubuntu
           key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          timeout: 5m
           command_timeout: 20m
           script: |
               cat > /tmp/deploy.sh << 'EOF'
