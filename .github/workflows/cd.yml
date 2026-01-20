@@ -31,11 +31,13 @@ jobs:
             nohup java -jar build/libs/*.jar \
               --spring.profiles.active=dev \
               > /home/ubuntu/logs/backend.log 2>&1 &
-            sleep 5
+            disown
+            sleep 10
             if pgrep -f 'java.*jar' > /dev/null; then
               echo "✅ Backend started successfully"
             else
               echo "❌ Backend failed to start"
+              cat /home/ubuntu/logs/backend.log
               exit 1
             fi
 
