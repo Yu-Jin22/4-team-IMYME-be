@@ -2,7 +2,8 @@ name: Backend CI
 
 on:
   pull_request:
-    branches: [main, develop, infra/cicd]
+    branches:
+        - dev
 
 jobs:
   ci:
