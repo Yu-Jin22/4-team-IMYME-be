@@ -1,4 +1,4 @@
-name: Backend CD (v 1.3)
+name: Backend CD (v 1.4)
 
 on:
   push:
@@ -26,6 +26,7 @@ jobs:
               pkill -f 'java.*jar' || true
               mkdir -p /home/ubuntu/logs
               set -a
+
               source /home/ubuntu/mine/backend/.env
               set +a
               nohup java -jar build/libs/mine-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev > /home/ubuntu/logs/backend.log 2>&1 &
