@@ -9,6 +9,8 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    
     steps:
       - name: Checkout code # 깃허브 액션이 코드 가져오기
         uses: actions/checkout@v2
@@ -128,4 +130,6 @@ jobs:
             **Branch:** ${{ github.ref_name }}
             **Commit:** ${{ github.sha }}
             **Author:** ${{ github.actor }}
+            **에러 로그 보기:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
           color: 0xFF0000
