@@ -8,6 +8,9 @@ public record CategoryKeywordsResponse(
     CategoryInfo category,
     List<KeywordResponse> keywords
 ) {
+    public CategoryKeywordsResponse {
+        keywords = List.copyOf(keywords);
+    }
     public record CategoryInfo(
         Long id,
         String name

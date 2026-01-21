@@ -15,14 +15,30 @@ public class ErrorResponse {
     private final String message;
     private final ErrorData data;
 
-    @Getter
     @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ErrorData {
         private final String errorCode;
-        @Builder.Default
-        private final List<FieldError> errors = List.of();
-        @Builder.Default
-        private final Map<String, Object> meta = Map.of();
+        private final List<FieldError> errors;
+        private final Map<String, Object> meta;
+
+        public ErrorData(String errorCode, List<FieldError> errors, Map<String, Object> meta) {
+            this.errorCode = errorCode;
+            this.errors = errors == null ? List.of() : List.copyOf(errors);
+            this.meta = meta == null ? Map.of() : Map.copyOf(meta);
+        }
+
+        public String getErrorCode() {
+            return errorCode;
+        }
+
+        public List<FieldError> getErrors() {
+            return errors;
+        }
+
+        public Map<String, Object> getMeta() {
+            return meta;
+        }
     }
 
     @Getter

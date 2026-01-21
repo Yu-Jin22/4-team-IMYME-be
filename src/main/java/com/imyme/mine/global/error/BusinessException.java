@@ -19,6 +19,6 @@ public class BusinessException extends RuntimeException {
     public BusinessException(ErrorCode errorCode, Map<String, Object> meta) {
         super(errorCode.getMessage());
         this.errorCode = errorCode;
-        this.meta = meta;
+        this.meta = Map.copyOf(meta);
     }
 }
