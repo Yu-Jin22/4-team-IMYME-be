@@ -54,6 +54,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+
+      # ========================================
+      # 5. 정적 분석 (Static Analysis)
+      # ========================================
+
+      # SpotBugs(버그패턴 캐치) : null위험, 무한 루프 등
+      - name: Run SpotBugs
+        run: ./gradlew spotbugsMain
+
+      # PMD(좋지 않은 코드 습관 캐치) : 중복코드, 안쓰는 변수 등
+      - name: Run PMD
+        run: ./gradlew pmdMain
+
+      # Checkstyle(코드 스타일) : 들여쓰기, 네이밍 규칙, 공백 등
+      - name: Run Checkstyle
+        run: ./gradlew checkstyleMain  
+        
       # 6. 빌드
       - name: Build
         env:
@@ -61,6 +78,14 @@ jobs:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: ./gradlew build -x test
+
+      # 7. 테스트
+      - name: Run Tests
+        env:
+          DB_URL: ${{ secrets.DB_URL }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: ./gradlew test
 
       # 8.1 이전 아티팩트 삭제
       - name: Delete old artifacts
@@ -169,12 +194,14 @@ jobs:
           export $(cat .env | xargs)
 
           nohup java -jar mine-0.0.1-SNAPSHOT.jar \
-
             --spring.profiles.active=dev \
-            > /home/ubuntu/logs/backend.log 2>&1 &
+            > /home/ubuntu/logs/backend.log 2>&1 </dev/null &
 
-          sleep 10
+          sleep 3
           pgrep -f 'java.*jar'
+
+          exit 0
+
           EOF
 
   # ---------- CD SUCCESS ----------
