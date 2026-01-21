@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - dev
+      - infra/cicd
+
   push:
     branches:
       - infra/cicd
@@ -22,6 +24,7 @@ jobs:
 # CI
 # ==================================================
   ci:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -124,7 +127,10 @@ jobs:
 # ==================================================
   deploy-dev:
     needs: ci
-    if: github.ref == 'refs/heads/dev'
+    # if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+
+
     runs-on: ubuntu-latest
 
     steps:
