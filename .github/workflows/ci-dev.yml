@@ -4,9 +4,9 @@ on:
   pull_request:
     branches:
         - dev
-  push:
-    branches:
-        - infra/cicd
+  # push:
+  #   branches:
+  #       - infra/cicd
 
 jobs:
   ci:
