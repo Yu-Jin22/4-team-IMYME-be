@@ -57,6 +57,12 @@ spring:
                         user-info-uri: https://kapi.kakao.com/v2/user/me
                         user-name-attribute: id
 
+    mvc:
+        throw-exception-if-no-handler-found: true  # 404 예외 발생
+    web:
+        resources:
+            add-mappings: false  # 정적 리소스 매핑 비활성화
+
 # ==================================================
 # 서버 설정
 # ==================================================
