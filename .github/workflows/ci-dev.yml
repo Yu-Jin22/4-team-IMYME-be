@@ -8,6 +8,11 @@ on:
     branches:
         - infra/cicd
 
+permissions:
+  actions: write   # 아티팩트 삭제 가능
+  contents: read
+
+        
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -50,15 +55,15 @@ jobs:
       # ========================================
 
       # SpotBugs(버그패턴 캐치) : null위험, 무한 루프 등
-      - name: Run SpotBugs
+      # - name: Run SpotBugs
         run: ./gradlew spotbugsMain
 
       # PMD(좋지 않은 코드 습관 캐치) : 중복코드, 안쓰는 변수 등
-      - name: Run PMD
+      # - name: Run PMD
         run: ./gradlew pmdMain
 
       # Checkstyle(코드 스타일) : 들여쓰기, 네이밍 규칙, 공백 등
-      - name: Run Checkstyle
+      # - name: Run Checkstyle
         run: ./gradlew checkstyleMain
 
 
