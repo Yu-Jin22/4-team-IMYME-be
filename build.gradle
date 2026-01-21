@@ -92,21 +92,3 @@ checkstyleMain {
         xml.required = false
     }
 }
-
-// Spotless - 코드 포맷팅
-spotless {
-    java {
-        palantirJavaFormat('2.39.0')
-        target 'src/**/*.java'
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-        indentWithSpaces(4)
-        importOrder('java', 'javax', '', '\\#')
-    }
-    format 'misc', {
-        target '*.gradle', '*.md', '.gitignore'
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
-}
