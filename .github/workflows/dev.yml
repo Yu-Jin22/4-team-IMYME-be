@@ -125,10 +125,10 @@ jobs:
 # ==================================================
 # CD
 # ==================================================
-  deploy-dev:
+  cd:
     needs: ci
     # if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/infra/cicd'
 
 
     runs-on: ubuntu-latest
