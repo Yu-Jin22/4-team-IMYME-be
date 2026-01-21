@@ -47,3 +47,5 @@ application-*.yml
 ### Logs ###
 logs/
 *.log
+
+CLAUDE.md

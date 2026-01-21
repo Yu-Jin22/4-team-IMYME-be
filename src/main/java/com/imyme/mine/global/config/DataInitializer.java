@@ -1,0 +1,77 @@
+package com.imyme.mine.global.config;
+
+import com.imyme.mine.domain.category.entity.Category;
+import com.imyme.mine.domain.category.repository.CategoryRepository;
+import com.imyme.mine.domain.keyword.entity.Keyword;
+import com.imyme.mine.domain.keyword.repository.KeywordRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DataInitializer implements CommandLineRunner {
+
+    private final CategoryRepository categoryRepository;
+    private final KeywordRepository keywordRepository;
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+        if (categoryRepository.count() > 0) {
+            log.info("데이터가 이미 존재합니다. 초기화를 건너뜁니다.");
+            return;
+        }
+
+        log.info("초기 데이터 생성 시작...");
+
+        // 카테고리 생성
+        Category os = createCategory("운영체제", 1);
+        Category network = createCategory("네트워크", 2);
+        Category database = createCategory("데이터베이스", 3);
+        Category dataStructure = createCategory("자료구조", 4);
+        Category algorithm = createCategory("알고리즘", 5);
+
+        // 키워드 생성
+        Map<Category, List<String>> keywordMap = Map.of(
+            os, List.of("프로세스", "스레드", "메모리 관리"),
+            network, List.of("TCP/IP", "HTTP"),
+            database, List.of("SQL", "인덱스", "트랜잭션"),
+            dataStructure, List.of("배열", "링크드리스트", "스택", "큐"),
+            algorithm, List.of("정렬", "탐색", "동적 프로그래밍")
+        );
+
+        keywordMap.forEach((category, keywords) -> {
+            for (int i = 0; i < keywords.size(); i++) {
+                createKeyword(category, keywords.get(i), i + 1);
+            }
+        });
+
+        log.info("초기 데이터 생성 완료!");
+    }
+
+    private Category createCategory(String name, int displayOrder) {
+        Category category = Category.builder()
+            .name(name)
+            .displayOrder(displayOrder)
+            .isActive(true)
+            .build();
+        return categoryRepository.save(category);
+    }
+
+    private void createKeyword(Category category, String name, int displayOrder) {
+        Keyword keyword = Keyword.builder()
+            .category(category)
+            .name(name)
+            .displayOrder(displayOrder)
+            .isActive(true)
+            .build();
+        keywordRepository.save(keyword);
+    }
+}
