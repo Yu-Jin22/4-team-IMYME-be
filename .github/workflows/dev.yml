@@ -1,4 +1,4 @@
-name: Backend CI/CD
+name: Backend CI/CD v1
 
 on:
   pull_request:
@@ -68,8 +68,8 @@ jobs:
 
       # # Checkstyle(코드 스타일) : 들여쓰기, 네이밍 규칙, 공백 등
       # - name: Run Checkstyle
-      #   run: ./gradlew checkstyleMain  
-        
+      #   run: ./gradlew checkstyleMain
+
       # 6. 빌드
       - name: Build
         env:
@@ -174,59 +174,59 @@ jobs:
         run: |
                 scp -i ~/.ssh/id_rsa ./build/libs/*.jar \
                 ubuntu@${{ secrets.DEV_SERVER_HOST }}:/home/ubuntu/mine/backend
-      
+
       # 4️⃣ 배포 (release / current 방식)
       - name: Deploy to Dev Server
         run: |
           ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.DEV_SERVER_HOST }} 'bash -s' <<'EOF'
           set -e
-          
+
           APP_DIR=/home/ubuntu/mine/backend
           RELEASES_DIR=$APP_DIR/releases
           SHARED_DIR=$APP_DIR/shared
           RELEASE_ID=$(date +%Y%m%d%H%M%S)
-          
+
           CURRENT_LINK=$APP_DIR/current
           RELEASE_DIR=$RELEASES_DIR/$RELEASE_ID
           PID_FILE=$SHARED_DIR/backend.pid
           LOG_DIR=$SHARED_DIR/logs
           LOG_FILE=$LOG_DIR/backend.log
           ENV_FILE=$SHARED_DIR/.env
-          
+
           mkdir -p "$RELEASE_DIR" "$LOG_DIR"
-          
+
           # 1. 새 release에 jar 이동
           mv "$APP_DIR/mine-0.0.1-SNAPSHOT.jar" "$RELEASE_DIR/backend.jar"
-          
+
           # 2. current 심볼릭 링크 교체
           ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
-          
+
           # 3. 기존 프로세스 종료 (pid 기준)
           if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
             kill "$(cat "$PID_FILE")" || true
             sleep 2
           fi
-          
+
           # 4. 환경변수 로드
           set -a
           . "$ENV_FILE"
           set +a
-          
+
           # 5. 새 버전 실행 (nohup + 완전 분리)
           nohup java -jar "$CURRENT_LINK/backend.jar" \
             --spring.profiles.active=dev \
             >> "$LOG_FILE" 2>&1 </dev/null &
-          
+
           echo $! > "$PID_FILE"
 
           ls -1dt "$RELEASES_DIR"/* | tail -n +4 | xargs -r rm -rf
 
-          
+
           exit 0
           EOF
-      
-      
-      
+
+
+
   cd-notify-success:
     needs: cd
     if: success()
