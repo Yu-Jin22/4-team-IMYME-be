@@ -1,4 +1,4 @@
-package com.imyme.mine.common.validation;
+package com.imyme.mine.global.common.validation;
 
 /**
  * Validation 그룹 정의 - 생성과 수정 시 다른 검증 규칙 적용

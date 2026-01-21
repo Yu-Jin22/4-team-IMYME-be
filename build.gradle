@@ -96,7 +96,7 @@ checkstyleMain {
 // Spotless - 코드 포맷팅
 spotless {
     java {
-        googleJavaFormat('1.17.0')
+        palantirJavaFormat('2.39.0')
         target 'src/**/*.java'
         removeUnusedImports()
         trimTrailingWhitespace()

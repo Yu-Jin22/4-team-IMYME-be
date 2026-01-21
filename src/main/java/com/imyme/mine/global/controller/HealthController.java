@@ -1,4 +1,4 @@
-package com.imyme.mine.controller;
+package com.imyme.mine.global.controller;
 
 import java.time.LocalDateTime;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package com.imyme.mine.common.exception;
+package com.imyme.mine.global.error;
 
 import java.util.HashMap;
 import java.util.Map;

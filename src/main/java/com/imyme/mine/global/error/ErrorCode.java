@@ -1,4 +1,4 @@
-package com.imyme.mine.common.exception;
+package com.imyme.mine.global.error;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
