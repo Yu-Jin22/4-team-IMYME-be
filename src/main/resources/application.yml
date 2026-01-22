@@ -85,16 +85,16 @@ logging:
         com.imyme.mine: DEBUG
 
         # Spring Security 로그 (인증 디버깅용)
-        org.springframework.security: DEBUG
+        org.springframework.security: INFO
 
         # SQL 로그
         org.hibernate.SQL: DEBUG
 
         # SQL 파라미터 값 보기 (물음표에 실제 값)
-        org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+        org.hibernate.type.descriptor.sql.BasicBinder: INFO
 
         # JPA 로그
-        org.hibernate.type: TRACE
+        org.hibernate.type: INFO
 
     # 콘솔 출력 패턴
     pattern:

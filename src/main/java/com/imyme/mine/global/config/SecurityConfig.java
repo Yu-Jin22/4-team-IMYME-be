@@ -34,10 +34,12 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/health",
-                                "/v1/auth/oauth/**", // OAuth 로그인
-                                "/v1/auth/refresh", // 토큰 갱신
-                                "/v1/auth/logout", // 로그아웃
-                                "/error")
+                                "/auth/oauth/**", // OAuth 로그인
+                                "/auth/refresh", // 토큰 갱신
+                                "/auth/logout", // 로그아웃
+                                "/error",
+                                "/swagger-ui/**", // Swagger UI
+                                "/v3/api-docs/**") // OpenAPI 문서
                         .permitAll()
 
                         // 그 외 모든 요청은 인증 필요
