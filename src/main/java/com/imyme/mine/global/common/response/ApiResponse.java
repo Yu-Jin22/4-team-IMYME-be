@@ -1,37 +1,28 @@
 package com.imyme.mine.global.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.time.Instant;
 
 /**
  * 통일된 API 성공 응답 형식
- *
+ * <p>
  * 설계 이유:
  * - 프론트엔드가 항상 동일한 구조로 처리 (success 필드로 성공/실패 구분)
  * - 에러 응답과 형식 통일
  * - WebSocket/SSE 응답과 구조 통일
  * - 페이징 메타데이터 추가 용이
- *
+ * <p>
  * 응답 예시:
  * {
- *   "success": true,
- *   "data": { ... },
- *   "message": "카드가 생성되었습니다.",
- *   "timestamp": "2026-01-21T10:30:00Z"
+ * "success": true,
+ * "data": { ... },
+ * "message": "카드가 생성되었습니다.",
+ * "timestamp": "2026-01-21T10:30:00Z"
  * }
  */
-@Getter
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)  // null 필드는 JSON에서 제외
-public class ApiResponse<T> {
-
-    private final boolean success;
-    private final T data;
-    private final String message;
-    private final Instant timestamp;
+public record ApiResponse<T>(boolean success, T data, String message, Instant timestamp) {
 
     // ========== 정적 팩토리 메서드 ==========
 

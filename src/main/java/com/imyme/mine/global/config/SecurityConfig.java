@@ -1,19 +1,22 @@
 package com.imyme.mine.global.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /** Spring Security 기본 설정
  * - JWT 기반 인증을 위한 Stateless 설정
- * - OAuth2 로그인 활성화
+ * - JWT 인증 필터 적용
  * - CSRF 비활성화 (JWT 사용 시)
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     @Bean
@@ -31,19 +34,15 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/health",
-                                "/auth/oauth/**", // OAuth 로그인
-                                "/auth/refresh", // 토큰 갱신
+                                "/v1/auth/oauth/**", // OAuth 로그인
+                                "/v1/auth/refresh", // 토큰 갱신
+                                "/v1/auth/logout", // 로그아웃
                                 "/error")
                         .permitAll()
 
                         // 그 외 모든 요청은 인증 필요
                         .anyRequest()
-                        .authenticated())
-
-                // OAuth2 로그인 설정 (나중에 카카오 추가)
-                .oauth2Login(
-                        oauth2 -> oauth2.loginPage("/auth/oauth/kakao") // 커스텀 로그인 페이지
-                        );
+                        .authenticated());
 
         return http.build();
     }

@@ -1,7 +1,6 @@
 package com.imyme.mine.global.common.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.data.domain.Page;
@@ -10,32 +9,27 @@ import java.util.List;
 
 /**
  * 페이징 응답 DTO
- *
+ * <p>
  * 응답 예시:
  * {
- *   "success": true,
- *   "data": {
- *     "content": [...],
- *     "meta": {
- *       "page": 1,
- *       "size": 20,
- *       "total_elements": 100,
- *       "total_pages": 5,
- *       "is_first": true,
- *       "is_last": false
- *     }
- *   },
- *   "timestamp": "2026-01-21T10:30:00Z"
+ * "success": true,
+ * "data": {
+ * "content": [...],
+ * "meta": {
+ * "page": 1,
+ * "size": 20,
+ * "total_elements": 100,
+ * "total_pages": 5,
+ * "is_first": true,
+ * "is_last": false
+ * }
+ * },
+ * "timestamp": "2026-01-21T10:30:00Z"
  * }
  */
-@Getter
 @Builder
-@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class PageResponse<T> {
-
-    private final List<T> content;
-    private final PageMeta meta;
+public record PageResponse<T>(List<T> content, PageMeta meta) {
 
     /**
      * Spring Data Page 객체를 PageResponse로 변환
