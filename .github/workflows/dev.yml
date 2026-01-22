@@ -208,10 +208,15 @@ jobs:
 
 
 
-          nohup java -jar "$CURRENT_LINK/backend.jar" \
-          --spring.config.location="$ENV_FILE" \
-          --spring.profiles.active=dev \
-          >> "$LOG_FILE" 2>&1 </dev/null &
+            # env 파일 변수 주입
+            set -a
+            . "$ENV_FILE"
+            set +a
+
+            # nohup 실행 (spring.config.location 제거)
+            nohup java -jar "$CURRENT_LINK/backend.jar" \
+                  --spring.profiles.active=dev \
+                  >> "$LOG_FILE" 2>&1 </dev/null &
 
 
           echo $! > "$PID_FILE"
