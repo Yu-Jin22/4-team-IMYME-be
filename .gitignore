@@ -49,3 +49,4 @@ logs/
 *.log
 
 CLAUDE.md
+.env
