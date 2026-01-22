@@ -1,38 +1,37 @@
 spring:
     config:
+        # .env 파일을 불러오는 설정
         import: optional:file:.env[.yaml]
 
     application:
         name: mine
 
+    mvc:
+        throw-exception-if-no-handler-found: true
+    web:
+        resources:
+            add-mappings: false
+
     # ==================================================
-    # DB (PostgreSQL) - 기존 설정 유지
+    # DB (PostgreSQL)
     # ==================================================
     datasource:
-        url: jdbc:postgresql://localhost:5432/mine_project_db
-        username: mine
-        password: ${DATABASE_PASSWORD}
+        url: ${DB_URL}
+        username: ${DB_USERNAME}
+        password: ${DB_PASSWORD}
         driver-class-name: org.postgresql.Driver
 
     # ==================================================
     # JPA / Hibernate
     # ==================================================
     jpa:
-        # MVP 개발용: 자바 코드 고치면 DB 테이블 자동 변경
         hibernate:
-            ddl-auto: update
-
-        # 실행되는 SQL 콘솔에 표시
+            ddl-auto: update # 개발용 (운영 시 validate 권장)
         show-sql: true
-
         properties:
             hibernate:
-                # SQL 포맷팅 (보기 좋게)
                 format_sql: true
-                # PostgreSQL 방언
                 dialect: org.hibernate.dialect.PostgreSQLDialect
-
-        # OSIV 설정 (성능 최적화)
         open-in-view: false
 
     # ==================================================
@@ -43,7 +42,6 @@ spring:
             client:
                 registration:
                     kakao:
-                        # 환경변수로 관리 (기본값: 빈 문자열)
                         client-id: ${KAKAO_CLIENT_ID}
                         client-secret: ${KAKAO_CLIENT_SECRET}
                         redirect-uri: ${KAKAO_REDIRECT_URI}
@@ -60,11 +58,18 @@ spring:
                         user-info-uri: https://kapi.kakao.com/v2/user/me
                         user-name-attribute: id
 
-    mvc:
-        throw-exception-if-no-handler-found: true  # 404 예외 발생
-    web:
-        resources:
-            add-mappings: false  # 정적 리소스 매핑 비활성화
+# ==================================================
+# AWS S3 설정
+# ==================================================
+cloud:
+    aws:
+        credentials:
+            access-key: ${S3_ACCESS_KEY}
+            secret-key: ${S3_SECRET_KEY}
+        region:
+            static: ${AWS_REGION}
+        s3:
+            bucket: ${S3BUCKET_NAME}
 
 # ==================================================
 # 서버 설정
@@ -81,29 +86,18 @@ server:
 # ==================================================
 logging:
     level:
-        # 우리 프로젝트 로그 (개발 시 상세하게)
         com.imyme.mine: DEBUG
-
-        # Spring Security 로그 (인증 디버깅용)
         org.springframework.security: INFO
-
-        # SQL 로그
         org.hibernate.SQL: DEBUG
-
-        # SQL 파라미터 값 보기 (물음표에 실제 값)
-        org.hibernate.type.descriptor.sql.BasicBinder: INFO
-
-        # JPA 로그
-        org.hibernate.type: INFO
-
-    # 콘솔 출력 패턴
+        org.hibernate.type.descriptor.sql.BasicBinder: TRACE # 바인딩 변수 보려면 TRACE 권장
+        org.hibernate.type: INFO # 너무 시끄러운 로그 방지
     pattern:
         console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
 # ==================================================
-# JWT 설정 (나중에 사용)
+# JWT 설정
 # ==================================================
 jwt:
-    secret: ${JWT_SECRET} # 환경변수로 관리, 기본값 설정
+    secret: ${JWT_SECRET}
     access-token-expiration: 3600000    # 1시간
     refresh-token-expiration: 604800000 # 7일
