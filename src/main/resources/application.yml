@@ -12,9 +12,6 @@ spring:
         resources:
             add-mappings: false
 
-    jackson:
-        property-naming-strategy: SNAKE_CASE
-
     # ==================================================
     # DB (PostgreSQL)
     # ==================================================
