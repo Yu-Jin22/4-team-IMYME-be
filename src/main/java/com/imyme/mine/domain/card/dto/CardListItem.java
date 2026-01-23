@@ -5,7 +5,7 @@ import com.imyme.mine.domain.card.entity.Card;
 
 import java.time.LocalDateTime;
 
-public record CardResponse(
+public record CardListItem(
 
     Long id,
 
@@ -30,15 +30,19 @@ public record CardResponse(
     Integer attemptCount,
 
     @JsonProperty("created_at")
-    LocalDateTime createdAt,
-
-    @JsonProperty("updated_at")
-    LocalDateTime updatedAt
+    LocalDateTime createdAt
 
 ) {
 
-    public static CardResponse from(Card card) {
-        return new CardResponse(
+    /**
+     * Card 엔티티 → CardListItem 변환
+     *
+     * [ JOIN FETCH 전제 ]
+     * - Repository에서 category, keyword를 JOIN FETCH로 조회
+     * - N+1 문제 없이 안전하게 접근 가능
+     */
+    public static CardListItem from(Card card) {
+        return new CardListItem(
             card.getId(),
             card.getCategory().getId(),
             card.getCategory().getName(),
@@ -47,8 +51,7 @@ public record CardResponse(
             card.getTitle(),
             card.getBestLevel(),
             card.getAttemptCount(),
-            card.getCreatedAt(),
-            card.getUpdatedAt()
+            card.getCreatedAt()
         );
     }
 }

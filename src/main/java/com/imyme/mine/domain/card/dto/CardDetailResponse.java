@@ -2,10 +2,13 @@ package com.imyme.mine.domain.card.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.imyme.mine.domain.card.entity.Card;
+import com.imyme.mine.domain.card.entity.CardAttempt;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-public record CardResponse(
+
+public record CardDetailResponse(
 
     Long id,
 
@@ -33,12 +36,18 @@ public record CardResponse(
     LocalDateTime createdAt,
 
     @JsonProperty("updated_at")
-    LocalDateTime updatedAt
+    LocalDateTime updatedAt,
+
+    List<AttemptResponse> attempts
 
 ) {
 
-    public static CardResponse from(Card card) {
-        return new CardResponse(
+    public static CardDetailResponse of(Card card, List<CardAttempt> attempts) {
+        List<AttemptResponse> attemptResponses = attempts.stream()
+            .map(AttemptResponse::from)
+            .toList();
+
+        return new CardDetailResponse(
             card.getId(),
             card.getCategory().getId(),
             card.getCategory().getName(),
@@ -48,7 +57,8 @@ public record CardResponse(
             card.getBestLevel(),
             card.getAttemptCount(),
             card.getCreatedAt(),
-            card.getUpdatedAt()
+            card.getUpdatedAt(),
+            attemptResponses
         );
     }
 }
