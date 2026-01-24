@@ -67,7 +67,7 @@ public class Device {
     // 푸시 수신 동의 여부
     @Builder.Default
     @Column(name = "is_push_enabled", nullable = false)
-    private boolean isPushEnabled = true;
+    private boolean isPushEnabled = false;
 
     // 마지막 활동 일시
     @Column(name = "last_active_at", nullable = false)
