@@ -86,7 +86,6 @@ public class OAuthService {
         return OAuthLoginResponse.builder()
             .accessToken(accessToken)
             .refreshToken(refreshToken)
-            .deviceId(device.getId())
             .expiresIn(expiresIn)
             .user(OAuthLoginResponse.UserInfo.from(user, isNewUser))
             .build();

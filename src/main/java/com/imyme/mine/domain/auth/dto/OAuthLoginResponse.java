@@ -8,7 +8,6 @@ import lombok.Builder;
 public record OAuthLoginResponse(
     String accessToken,
     String refreshToken,
-    Long deviceId,
     Long expiresIn,
     UserInfo user
 ) {
