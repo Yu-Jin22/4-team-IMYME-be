@@ -160,44 +160,6 @@ public class User {
         this.lastLoginAt = now;
     }
 
-    // 레벨 재계산 (누적 카드 수 기반) -> 레벨업 조건: 5, 15, 30, 50, 75... (+5씩 증가)
-    public void recalculateLevel() {
-        int threshold = 0;
-        int newLevel = 1;
-
-        while (threshold < this.totalCardCount) {
-            threshold += (newLevel * 5);
-            if (threshold <= this.totalCardCount) {
-                newLevel++;
-            }
-        }
-
-        this.level = newLevel;
-    }
-
-    // 누적 카드 수 증가 (카드 생성 시)
-    public void incrementTotalCardCount() {
-        this.totalCardCount++;
-        recalculateLevel();
-    }
-
-    // 활성 카드 수 증가 (카드 생성 시)
-    public void incrementActiveCardCount() {
-        this.activeCardCount++;
-    }
-
-    // 활성 카드 수 감소 (카드 삭제 시)
-    public void decrementActiveCardCount() {
-        if (this.activeCardCount > 0) {
-            this.activeCardCount--;
-        }
-    }
-
-    // PvP 승리 횟수 증가
-    public void incrementWinCount() {
-        this.winCount++;
-    }
-
     // 닉네임 변경
     public void updateNickname(String nickname) {
         this.nickname = nickname;
@@ -207,5 +169,70 @@ public class User {
     public void updateProfileImage(String profileImageUrl, String profileImageKey) {
         this.profileImageUrl = profileImageUrl;
         this.profileImageKey = profileImageKey;
+    }
+
+    // 다음 레벨업까지 남은 카드 수 계산
+    public int getRemainingCardsForNextLevel() {
+        int nextLevelThreshold = calculateLevelThreshold(this.level);
+        return Math.max(0, nextLevelThreshold - this.totalCardCount);
+    }
+
+    // 현재 레벨 진행률(%) 계산
+    public int getLevelProgressPercent() {
+        int nextLevelThreshold = calculateLevelThreshold(this.level);
+        int currentLevelBase = calculateLevelThreshold(this.level - 1);
+
+        int totalForThisLevel = nextLevelThreshold - currentLevelBase;
+        int gatheredForThisLevel = this.totalCardCount - currentLevelBase;
+
+        if (totalForThisLevel <= 0) return 0;
+
+        int progress = (int) ((double) gatheredForThisLevel / totalForThisLevel * 100);
+        return Math.min(100, Math.max(0, progress));
+    }
+
+    // 레벨 재계산 및 갱신 (카드 생성 시 호출)
+    public void incrementTotalCardCount() {
+        this.totalCardCount++;
+        recalculateLevel();
+    }
+
+    // 내부 로직: 실제 레벨 재계산 수행
+    private void recalculateLevel() {
+        // 현재 totalCardCount에 맞는 레벨을 찾을 때까지 루프
+        int newLevel = 1;
+        while (calculateLevelThreshold(newLevel) <= this.totalCardCount) {
+            newLevel++;
+        }
+        this.level = newLevel;
+    }
+
+    // 특정 레벨 도달에 필요한 누적 카드 수 반환 (공식: 5, 15, 30...)
+    private int calculateLevelThreshold(int targetLevel) {
+        if (targetLevel <= 0) return 0;
+
+        int threshold = 0;
+        int increment = 5;
+
+        for (int i = 1; i <= targetLevel; i++) {
+            threshold += increment;
+            increment += 5;
+        }
+        return threshold;
+    }
+
+    // ... (나머지 incrementActiveCardCount 등은 그대로 유지) ...
+    public void incrementActiveCardCount() {
+        this.activeCardCount++;
+    }
+
+    public void decrementActiveCardCount() {
+        if (this.activeCardCount > 0) {
+            this.activeCardCount--;
+        }
+    }
+
+    public void incrementWinCount() {
+        this.winCount++;
     }
 }
