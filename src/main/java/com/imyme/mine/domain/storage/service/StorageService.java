@@ -33,7 +33,7 @@ public class StorageService {
     private final CardAttemptRepository cardAttemptRepository;
 
     private static final int MAX_ATTEMPTS_PER_CARD = 5;
-    private static final Duration PRESIGNED_URL_EXPIRATION = Duration.ofMinutes(10);
+    private static final Duration PRESIGNED_URL_EXPIRATION = Duration.ofMinutes(10);//aduio-url 10분 설정
 
     @Transactional
     public PresignedUrlResponse generatePresignedUrl(Long userId, PresignedUrlRequest request) {

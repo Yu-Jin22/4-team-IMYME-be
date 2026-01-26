@@ -45,20 +45,30 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("초기 데이터 생성 시작...");
 
-        // 카테고리 생성
+        // 카테고리 생성 (10개)
         Category os = createCategory("운영체제", 1);
         Category network = createCategory("네트워크", 2);
         Category database = createCategory("데이터베이스", 3);
         Category dataStructure = createCategory("자료구조", 4);
         Category algorithm = createCategory("알고리즘", 5);
+        Category softwareEngineering = createCategory("소프트웨어 공학", 6);
+        Category computerArchitecture = createCategory("컴퓨터 구조", 7);
+        Category programmingLanguage = createCategory("프로그래밍 언어", 8);
+        Category security = createCategory("보안", 9);
+        Category ai = createCategory("인공지능", 10);
 
-        // 키워드 생성
+        // 키워드 생성 (각 카테고리당 5개)
         Map<Category, List<String>> keywordMap = Map.of(
-            os, List.of("프로세스", "스레드", "메모리 관리"),
-            network, List.of("TCP/IP", "HTTP"),
-            database, List.of("SQL", "인덱스", "트랜잭션"),
-            dataStructure, List.of("배열", "링크드리스트", "스택", "큐"),
-            algorithm, List.of("정렬", "탐색", "동적 프로그래밍")
+            os, List.of("프로세스", "스레드", "메모리 관리", "데드락", "스케줄링"),
+            network, List.of("TCP/IP", "HTTP", "DNS", "라우팅", "OSI 7계층"),
+            database, List.of("SQL", "인덱스", "트랜잭션", "정규화", "조인"),
+            dataStructure, List.of("배열", "링크드리스트", "스택", "큐", "트리"),
+            algorithm, List.of("정렬", "탐색", "동적 프로그래밍", "그리디", "분할정복"),
+            softwareEngineering, List.of("디자인 패턴", "테스트", "리팩토링", "애자일", "CI/CD"),
+            computerArchitecture, List.of("CPU", "메모리", "캐시", "파이프라인", "병렬처리"),
+            programmingLanguage, List.of("객체지향", "함수형", "컴파일러", "가비지컬렉션", "타입시스템"),
+            security, List.of("암호화", "인증", "방화벽", "SQL Injection", "XSS"),
+            ai, List.of("머신러닝", "딥러닝", "신경망", "자연어처리", "강화학습")
         );
 
         keywordMap.forEach((category, keywords) -> {

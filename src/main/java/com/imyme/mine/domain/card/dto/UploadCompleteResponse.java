@@ -5,15 +5,12 @@ import com.imyme.mine.domain.card.entity.CardAttempt;
 
 public record UploadCompleteResponse(
 
-    @JsonProperty("attempt_id")
     Long attemptId,
 
     String status,
 
-    @JsonProperty("audio_url")
     String audioUrl,
 
-    @JsonProperty("duration_seconds")
     Integer durationSeconds,
 
     String message

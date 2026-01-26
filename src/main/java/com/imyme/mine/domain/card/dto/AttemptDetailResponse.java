@@ -9,36 +9,26 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AttemptDetailResponse(
 
-    @JsonProperty("card_id")
     Long cardId,
 
-    @JsonProperty("attempt_id")
     Long attemptId,
 
-    @JsonProperty("attempt_no")
     Short attemptNo,
 
     String status,
 
-    @JsonProperty("audio_url")
     String audioUrl,
 
-    @JsonProperty("duration_seconds")
     Integer durationSeconds,
 
-    @JsonProperty("stt_text")
     String sttText,
 
-    @JsonProperty("created_at")
     LocalDateTime createdAt,
 
-    @JsonProperty("submitted_at")
     LocalDateTime submittedAt,
 
-    @JsonProperty("finished_at")
     LocalDateTime finishedAt,
 
-    @JsonProperty("expires_at")
     LocalDateTime expiresAt,
 
     String message
