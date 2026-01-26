@@ -1,7 +1,5 @@
 package com.imyme.mine.domain.user.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.List;
 
 /**
@@ -9,20 +7,10 @@ import java.util.List;
  * - 클라이언트가 S3에 직접 업로드할 수 있는 정보 제공
  */
 public record ProfileImagePresignedUrlResponse(
-
-    @JsonProperty("upload_url")
     String uploadUrl,
-
-    @JsonProperty("profile_image_url")
     String profileImageUrl,
-
-    @JsonProperty("profile_image_key")
     String profileImageKey,
-
-    @JsonProperty("expires_in")
     Integer expiresIn,
-
-    @JsonProperty("constraints")
     Constraints constraints
 
 ) {
@@ -46,10 +34,7 @@ public record ProfileImagePresignedUrlResponse(
     }
 
     public record Constraints(
-        @JsonProperty("max_size_bytes")
         Long maxSizeBytes,
-
-        @JsonProperty("allowed_content_types")
         List<String> allowedContentTypes
     ) {}
 }

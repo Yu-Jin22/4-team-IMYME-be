@@ -1,6 +1,5 @@
 package com.imyme.mine.domain.user.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 
 /**
@@ -10,7 +9,6 @@ import jakarta.validation.constraints.NotBlank;
 public record ProfileImagePresignedUrlRequest(
 
     @NotBlank(message = "Content-Type은 필수입니다.")
-    @JsonProperty("content_type")
     String contentType
 
 ) {}
