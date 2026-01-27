@@ -7,13 +7,13 @@ import com.imyme.mine.domain.card.dto.UploadCompleteRequest;
 import com.imyme.mine.domain.card.dto.UploadCompleteResponse;
 import com.imyme.mine.domain.card.service.AttemptService;
 import jakarta.validation.Valid;
+import com.imyme.mine.global.common.response.ApiResponse;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import com.imyme.mine.global.security.jwt.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -34,7 +35,8 @@ public class AttemptController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping
-    public ResponseEntity<AttemptCreateResponse> createAttempt(
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<AttemptCreateResponse> createAttempt(
         @RequestHeader("Authorization") String authorization,
         @PathVariable Long cardId,
         @RequestBody(required = false) AttemptCreateRequest request
@@ -48,11 +50,11 @@ public class AttemptController {
 
         AttemptCreateResponse response = attemptService.createAttempt(userId, cardId, request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ApiResponse.success(response);
     }
 
     @GetMapping("/{attemptId}")
-    public ResponseEntity<AttemptDetailResponse> getAttemptDetail(
+    public ApiResponse<AttemptDetailResponse> getAttemptDetail(
         @RequestHeader("Authorization") String authorization,
         @PathVariable Long cardId,
         @PathVariable Long attemptId
@@ -62,11 +64,11 @@ public class AttemptController {
 
         AttemptDetailResponse response = attemptService.getAttemptDetail(userId, cardId, attemptId);
 
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 
     @PutMapping("/{attemptId}/upload-complete")
-    public ResponseEntity<UploadCompleteResponse> uploadComplete(
+    public ApiResponse<UploadCompleteResponse> uploadComplete(
         @RequestHeader("Authorization") String authorization,
         @PathVariable Long cardId,
         @PathVariable Long attemptId,
@@ -77,11 +79,12 @@ public class AttemptController {
 
         UploadCompleteResponse response = attemptService.uploadComplete(userId, cardId, attemptId, request);
 
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 
     @DeleteMapping("/{attemptId}")
-    public ResponseEntity<Void> deleteAttempt(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAttempt(
         @RequestHeader("Authorization") String authorization,
         @PathVariable Long cardId,
         @PathVariable Long attemptId
@@ -90,8 +93,6 @@ public class AttemptController {
         log.info("DELETE /cards/{}/attempts/{} - userId: {}", cardId, attemptId, userId);
 
         attemptService.deleteAttempt(userId, cardId, attemptId);
-
-        return ResponseEntity.noContent().build();
     }
 
     private Long extractUserId(String authorization) {

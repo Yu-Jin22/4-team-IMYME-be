@@ -17,10 +17,10 @@ public class KeywordController {
     private final KeywordService keywordService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CategoryWithKeywordsResponse>>> getAllKeywords(
+    public ApiResponse<List<CategoryWithKeywordsResponse>> getAllKeywords(
             @RequestParam(required = false) Boolean isActive
     ) {
         List<CategoryWithKeywordsResponse> keywords = keywordService.getAllKeywordsGroupedByCategory(isActive);
-        return ResponseEntity.ok(ApiResponse.success(keywords));
+        return ApiResponse.success(keywords);
     }
 }

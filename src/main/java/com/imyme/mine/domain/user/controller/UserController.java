@@ -33,17 +33,14 @@ public class UserController {
 
     // 프로필 조회
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserProfileResponse>> getProfile(
+    public ApiResponse<UserProfileResponse> getProfile(
             @CurrentUser UserPrincipal userPrincipal
     ) {
         log.info("프로필 조회 요청: userId={}", userPrincipal.getId());
 
         UserProfileResponse response = userService.getProfile(userPrincipal.getId());
 
-        // 캐싱 비활성화 (MVP 단계)
-        return ResponseEntity.ok()
-                .cacheControl(CacheControl.noStore())
-                .body(ApiResponse.success(response, "프로필 조회 성공"));
+        return ApiResponse.success(response);
     }
 
     // 프로필 수정

@@ -20,19 +20,19 @@ public class CategoryController {
     private final KeywordService keywordService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories(
+    public ApiResponse<List<CategoryResponse>> getCategories(
             @RequestParam(required = false) Boolean isActive
     ) {
         List<CategoryResponse> categories = categoryService.getCategories(isActive);
-        return ResponseEntity.ok(ApiResponse.success(categories, "categories_fetched"));
+        return ApiResponse.success(categories);
     }
 
     @GetMapping("/{categoryId}/keywords")
-    public ResponseEntity<CategoryKeywordsResponse> getKeywordsByCategory(
+    public ApiResponse<CategoryKeywordsResponse> getKeywordsByCategory(
             @PathVariable Long categoryId,
             @RequestParam(required = false) Boolean isActive
     ) {
         CategoryKeywordsResponse response = keywordService.getKeywordsByCategory(categoryId, isActive);
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 }

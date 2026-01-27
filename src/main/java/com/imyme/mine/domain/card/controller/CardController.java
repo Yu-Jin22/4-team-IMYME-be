@@ -7,6 +7,7 @@ import com.imyme.mine.domain.card.dto.CardResponse;
 import com.imyme.mine.domain.card.dto.CardUpdateRequest;
 import com.imyme.mine.domain.card.dto.CardUpdateResponse;
 import com.imyme.mine.domain.card.service.CardService;
+import com.imyme.mine.global.common.response.ApiResponse;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import com.imyme.mine.global.security.jwt.JwtTokenProvider;
@@ -14,7 +15,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -38,7 +39,8 @@ public class CardController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping
-    public ResponseEntity<CardResponse> createCard(
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<CardResponse> createCard(
         @RequestHeader("Authorization") String authorization,
         @Valid @RequestBody CardCreateRequest request
     ) {
@@ -47,11 +49,11 @@ public class CardController {
 
         CardResponse response = cardService.createCard(userId, request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ApiResponse.success(response, "카드가 생성되었습니다.");
     }
 
     @PatchMapping("/{cardId}")
-    public ResponseEntity<CardUpdateResponse> updateCardTitle(
+    public ApiResponse<CardUpdateResponse> updateCardTitle(
         @RequestHeader("Authorization") String authorization,
         @PathVariable Long cardId,
         @Valid @RequestBody CardUpdateRequest request
@@ -61,11 +63,12 @@ public class CardController {
 
         CardUpdateResponse response = cardService.updateCardTitle(userId, cardId, request);
 
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response, "카드 제목이 수정되었습니다.");
     }
 
     @DeleteMapping("/{cardId}")
-    public ResponseEntity<Void> deleteCard(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCard(
         @RequestHeader("Authorization") String authorization,
         @PathVariable Long cardId
     ) {
@@ -73,12 +76,10 @@ public class CardController {
         log.info("DELETE /cards/{} - userId: {}", cardId, userId);
 
         cardService.deleteCard(userId, cardId);
-
-        return ResponseEntity.noContent().build();
     }
 
     @GetMapping
-    public ResponseEntity<CardListResponse> getCards(
+    public ApiResponse<CardListResponse> getCards(
         @RequestHeader("Authorization") String authorization,
         @RequestParam(name = "category_id", required = false) Long categoryId,
         @RequestParam(name = "keyword_ids", required = false) List<Long> keywordIds,
@@ -97,11 +98,11 @@ public class CardController {
             userId, categoryId, keywordIds, excludeGhost, sort, cursor, limit
         );
 
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 
     @GetMapping("/{cardId}")
-    public ResponseEntity<CardDetailResponse> getCardDetail(
+    public ApiResponse<CardDetailResponse> getCardDetail(
         @RequestHeader("Authorization") String authorization,
         @PathVariable Long cardId
     ) {
@@ -110,7 +111,7 @@ public class CardController {
 
         CardDetailResponse response = cardService.getCardDetail(userId, cardId);
 
-        return ResponseEntity.ok(response);
+        return ApiResponse.success(response);
     }
 
     private Long extractUserId(String authorization) {
