@@ -80,7 +80,7 @@ public class StorageService {
 
     private String generateObjectKey(Long userId, Long cardId, Long attemptId, String fileExtension) {
         String uuid = UUID.randomUUID().toString();
-        return String.format("audio/%d/%d/%d_%s.%s", userId, cardId, attemptId, uuid, fileExtension);
+        return String.format("audios/%d/%d/%d_%s.%s", userId, cardId, attemptId, uuid, fileExtension);
     }
 
     private PresignedPutObjectRequest generatePresignedPutRequest(String objectKey, String fileExtension) {
