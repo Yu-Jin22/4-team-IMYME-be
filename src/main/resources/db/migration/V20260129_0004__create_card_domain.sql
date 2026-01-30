@@ -28,7 +28,7 @@ CREATE TABLE card_attempts (
     audio_url VARCHAR(500),
     duration_seconds INT,
     stt_text TEXT,
-    status VARCHAR(20) NOT NULL CHECK (status IN ('UPLOADED', 'PROCESSING', 'COMPLETED', 'FAILED')),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('PENDING','UPLOADED', 'PROCESSING', 'COMPLETED', 'FAILED', 'EXPIRED')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     submitted_at TIMESTAMPTZ,
     finished_at TIMESTAMPTZ,
