@@ -1,7 +1,7 @@
 package com.imyme.mine.domain.learning.service;
 
 import com.imyme.mine.domain.ai.client.AiServerClient;
-import com.imyme.mine.domain.ai.dto.*;
+import com.imyme.mine.domain.ai.dto.solo.*;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;

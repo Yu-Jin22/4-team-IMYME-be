@@ -1,4 +1,4 @@
-package com.imyme.mine.domain.ai.dto;
+package com.imyme.mine.domain.ai.dto.solo;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * AI 서버의 keyword 응답이 문자열 배열 또는 중첩 배열인 경우 모두 수용한다.
+ * AI 서버의 keyword 응답이 문자열 배열 또는 중첩 배열인 경우 모두 수용
  * 예) ["a","b"] 또는 [["a"],["b"]]
  */
 public class KeywordListDeserializer extends JsonDeserializer<List<String>> {

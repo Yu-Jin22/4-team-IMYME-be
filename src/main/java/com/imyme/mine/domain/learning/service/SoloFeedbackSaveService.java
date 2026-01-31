@@ -1,8 +1,8 @@
 package com.imyme.mine.domain.learning.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.imyme.mine.domain.ai.dto.SoloFeedback;
-import com.imyme.mine.domain.ai.dto.SoloResult;
+import com.imyme.mine.domain.ai.dto.solo.SoloFeedback;
+import com.imyme.mine.domain.ai.dto.solo.SoloResult;
 import com.imyme.mine.domain.card.entity.CardAttempt;
 import com.imyme.mine.domain.card.entity.CardFeedback;
 import com.imyme.mine.domain.card.repository.CardAttemptRepository;

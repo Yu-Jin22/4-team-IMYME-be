@@ -1,4 +1,4 @@
-package com.imyme.mine.domain.ai.dto;
+package com.imyme.mine.domain.ai.dto.solo;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.List;
@@ -13,4 +13,5 @@ public record SoloFeedback(
     String facts,
     String understanding,
     String personalized
-) {}
+) {
+}

@@ -1,4 +1,4 @@
-package com.imyme.mine.domain.ai.dto;
+package com.imyme.mine.domain.ai.dto.solo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -12,4 +12,5 @@ public record SoloResultData(
 
     @JsonProperty("result")
     SoloResult result  // status가 "completed"일 때만 존재
-) {}
+) {
+}
