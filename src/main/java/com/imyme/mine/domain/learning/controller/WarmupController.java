@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "9. STT Warmup", description = "STT 서버 워밍업 API (GPU 콜드 스타트 방지)")
+@Tag(name = "9. Study Audio", description = "학습 오디오 업로드용 Presigned URL 발급 API")
 @Slf4j
 @RestController
 @RequestMapping("/learning/warmup")

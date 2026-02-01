@@ -4,6 +4,7 @@ import com.imyme.mine.domain.keyword.entity.Keyword;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -47,7 +48,9 @@ public class KnowledgeBase {
 
     // 벡터 임베딩: OpenAI text-embedding-3-small 모델 기준 1024차원
     // 의미적 유사도 검색용 벡터 데이터
-    @Column(name = "embedding", columnDefinition = "VECTOR(1024)")
+    // PostgreSQL vector 타입으로 명시적 형변환(Casting) 추가
+    @Column(name = "embedding", columnDefinition = "vector")
+    @ColumnTransformer(write = "?::vector")
     private String embedding;
 
     // 콘텐츠 해시: SHA-256 해시값 (64자)
