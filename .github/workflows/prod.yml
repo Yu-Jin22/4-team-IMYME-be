@@ -4,12 +4,13 @@ on:
   pull_request:
     branches:
       - main
-#      - infra/cicd
+      - infra/cicdtest
 
   push:
     branches:
 #      - infra/cicd
       - main
+      - infra/cicdtest
 
 permissions:
   actions: write
