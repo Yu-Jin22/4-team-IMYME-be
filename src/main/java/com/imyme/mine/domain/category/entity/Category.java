@@ -5,19 +5,27 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(
+    name = "categories",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_categories_name",
+            columnNames = {"name"}
+        )
+    }
+)
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
-@Entity
-@Table(name = "categories")
 public class Category {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 20, unique = true)
+    @Column(nullable = false, length = 20)
     private String name;
 
     @Column(name = "display_order", nullable = false)
