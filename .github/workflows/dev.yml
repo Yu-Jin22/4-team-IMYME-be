@@ -72,18 +72,10 @@ jobs:
 
       # 6. 빌드
       - name: Build
-        env:
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: ./gradlew build -x test
 
        # 7. 테스트
       - name: Run Tests
-        env:
-           DB_URL: ${{ secrets.DB_URL }}
-           DB_USERNAME: ${{ secrets.DB_USERNAME }}
-           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: ./gradlew test
 
       # 8.1 이전 아티팩트 삭제
