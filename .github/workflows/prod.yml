@@ -168,23 +168,23 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEV_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.DEV_SERVER_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts
 
       # 2️⃣ 아티팩트 다운로드
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
-          name: backend-dev-latest
+          name: backend-prod-latest
           path: ./build/libs
 
       # 3️⃣ 서버 전송
-      - name: Copy artifact to dev server
+      - name: Copy artifact to prod server
         run: |
                 scp -i ~/.ssh/id_rsa ./build/libs/*.jar \
                 ubuntu@${{ secrets.DEV_SERVER_HOST }}:/home/ubuntu/mine/backend
 
       # 4️⃣ 배포 (release / current 방식)
-      - name: Deploy to Dev Server
+      - name: Deploy to Prod Server
         run: |
           ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.DEV_SERVER_HOST }} 'bash -s' <<'EOF'
           set -e
