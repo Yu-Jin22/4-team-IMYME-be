@@ -181,12 +181,12 @@ jobs:
       - name: Copy artifact to prod server
         run: |
                 scp -i ~/.ssh/id_rsa ./build/libs/*.jar \
-                ubuntu@${{ secrets.DEV_SERVER_HOST }}:/home/ubuntu/mine/backend
+                ubuntu@${{ secrets.PROD_SERVER_HOST }}:/home/ubuntu/mine/backend
 
       # 4️⃣ 배포 (release / current 방식)
       - name: Deploy to Prod Server
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.DEV_SERVER_HOST }} 'bash -s' <<'EOF'
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.PROD_SERVER_HOST }} 'bash -s' <<'EOF'
           set -e
 
           APP_DIR=/home/ubuntu/mine/backend
