@@ -3,13 +3,12 @@ name: Backend CI/CD v2
 on:
   pull_request:
     branches:
-      - dev
-#      - infra/cicd
+      - main
 
   push:
     branches:
 #      - infra/cicd
-      - dev   # dev merge 결과 → CD
+      - main
 
 permissions:
   actions: write
@@ -80,7 +79,7 @@ jobs:
 
       # 8.1 이전 아티팩트 삭제
       - name: Delete old artifacts
-        if: github.ref == 'refs/heads/dev' || github.event.pull_request.merged == true
+        if: github.ref == 'refs/heads/main' || github.event.pull_request.merged == true
         uses: actions/github-script@v7
         with:
           script: |
@@ -89,7 +88,7 @@ jobs:
               repo: context.repo.repo,
             });
             for (const artifact of artifacts.data.artifacts) {
-              if (artifact.name === 'backend-dev-latest') {
+              if (artifact.name === 'backend-prod-latest') {
                 await github.rest.actions.deleteArtifact({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -100,10 +99,10 @@ jobs:
 
       # 8.2 아티팩트 업로드
       - name: Upload artifact
-        if: github.ref == 'refs/heads/dev' || github.event.pull_request.merged == true
+        if: github.ref == 'refs/heads/main' || github.event.pull_request.merged == true
         uses: actions/upload-artifact@v4
         with:
-          name: backend-dev-latest
+          name: backend-prod-latest
           path: build/libs/*.jar
           retention-days: 15
           overwrite: true
@@ -118,8 +117,8 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_BE }}
           status: success
-          title: "🟢 개발서버 백엔드 CI 성공"
-          content: "<@&${{ secrets.BACKEND_ROLE_ID }}> 개발서버 백엔드 CI 성공!"
+          title: "🟢 운영서버 백엔드 CI 성공"
+          content: "<@&${{ secrets.BACKEND_ROLE_ID }}> 운영서버 백엔드 CI 성공!"
           color: 0x00FF00
 
   ci-notify-failure:
@@ -132,14 +131,14 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_BE }}
           status: failure
-          title: "🔴 개발서버 백엔드 CI 실패"
-          content: "<@&${{ secrets.BACKEND_ROLE_ID }}> 개발서버 백엔드 CI 실패!"
+          title: "🔴 운영서버 백엔드 CI 실패"
+          content: "<@&${{ secrets.BACKEND_ROLE_ID }}> 운영서버 백엔드 CI 실패!"
           color: 0xFF0000
 
   # 2) CD
   cd:
     needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
 
     runs-on: ubuntu-latest
@@ -168,25 +167,25 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEV_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.DEV_SERVER_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts
 
       # 2️⃣ 아티팩트 다운로드
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
-          name: backend-dev-latest
+          name: backend-prod-latest
           path: ./build/libs
 
       # 3️⃣ 서버 전송
-      - name: Copy artifact to dev server
+      - name: Copy artifact to prod server
         run: |
                 scp -i ~/.ssh/id_rsa ./build/libs/*.jar \
-                ubuntu@${{ secrets.DEV_SERVER_HOST }}:/home/ubuntu/mine/backend
+                ubuntu@${{ secrets.PROD_SERVER_HOST }}:/home/ubuntu/mine/backend
 
       # 4️⃣ 배포 (release / current 방식)
-      - name: Deploy to Dev Server
+      - name: Deploy to Prod Server
         run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.DEV_SERVER_HOST }} 'bash -s' <<'EOF'
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.PROD_SERVER_HOST }} 'bash -s' <<'EOF'
           set -e
 
           APP_DIR=/home/ubuntu/mine/backend
@@ -223,7 +222,7 @@ jobs:
 
           # nohup 실행 (spring.config.location 제거)
           nohup java -jar "$CURRENT_LINK/backend.jar" \
-                --spring.profiles.active=dev \
+                --spring.profiles.active=prod \
                 >> "$LOG_FILE" 2>&1 </dev/null &
 
 
@@ -256,9 +255,9 @@ jobs:
         run: |
             set -e
             # Nginx가 물려있는 엔드포인트로 헬스체크
-            curl -fsS "${{ secrets.DEV_BASE_URL }}/server/health" >/dev/null
+            curl -fsS "${{ secrets.PROD_BASE_URL }}/server/health" >/dev/null
             # 카테고리 리스트업
-            curl -fsS "${{ secrets.DEV_BASE_URL }}/server/categories" >/dev/null
+            curl -fsS "${{ secrets.PROD_BASE_URL }}/server/categories" >/dev/null
 
 
       # 5️⃣ 보안 그룹에서 IP 제거 (항상 실행)
@@ -285,8 +284,8 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_BE }}
           status: success
-          title: "🟢 개발서버 백엔드 배포 성공"
-          content: "개발서버 백엔드 배포 완료!"
+          title: "🟢 운영서버 백엔드 배포 성공"
+          content: "운영서버 백엔드 배포 완료!"
           color: 0x00FF00
 
   cd-notify-failure:
@@ -299,6 +298,6 @@ jobs:
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_BE }}
           status: failure
-          title: "🔴 개발서버 백엔드 배포 실패"
-          content: "<@&${{ secrets.BACKEND_ROLE_ID }}> 개발서버 백엔드 배포 실패!"
+          title: "🔴 운영서버 백엔드 배포 실패"
+          content: "<@&${{ secrets.BACKEND_ROLE_ID }}> 운영서버 백엔드 배포 실패!"
           color: 0xFF0000
