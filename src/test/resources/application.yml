@@ -1,0 +1,54 @@
+spring:
+    # H2 DB 설정
+    datasource:
+        url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+        driver-class-name: org.h2.Driver
+        username: sa
+        password:
+
+    jpa:
+        hibernate:
+            ddl-auto: create-drop
+        properties:
+            hibernate:
+                format_sql: true
+                dialect: org.hibernate.dialect.H2Dialect
+
+    # Flyway 비활성화 (테스트 환경에서는 JPA DDL auto 사용)
+    # - 이유: H2는 PostgreSQL의 CREATE EXTENSION, VECTOR 타입 미지원
+    # - JPA가 Entity 기반으로 테이블 자동 생성 (create-drop)
+    # - 프로덕션: Flyway로 스키마 관리 / 테스트: JPA DDL로 스키마 생성
+    flyway:
+        enabled: false
+
+# --------------------------------------------------------
+# JWT 설정 (Base64 인코딩된 긴 문자열 권장)
+# --------------------------------------------------------
+jwt:
+    # 혹시 모를 에러 방지를 위해 Base64 포맷의 긴 키를 넣어주는 게 안전합니다.
+    secret: dGVzdF9zZWNyZXRfa2V5X2Zvcl90ZXN0aW5nX3B1cnBvc2VzX29ubHlfbXVzdF9iZV9sb25nX2Vub3VnaA==
+    access-token-expiration: 3600000
+    refresh-token-expiration: 604800000
+
+# 클라우드 설정 가짜값
+cloud:
+    aws:
+        credentials:
+            access-key: test-key
+            secret-key: test-secret
+        region:
+            static: ap-northeast-2
+        s3:
+            bucket: test-bucket
+
+# OAuth 설정 가짜값
+security:
+    oauth2:
+        client:
+            registration:
+                kakao:
+                    client-id: test-client-id
+                    client-secret: test-client-secret
+                    redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+                    authorization-grant-type: authorization_code
+                    scope: profile
