@@ -145,19 +145,16 @@ public class User {
             .withZoneSameInstant(ZoneId.of("Asia/Seoul"))
             .toLocalDate();
 
-        // 이미 오늘 로그인 기록이 있다면 로직 종료 (업데이트 불필요)
-        if (todayKst.isEqual(lastLoginDateKst)) {
-            return; // 이미 오늘 출석함
+        // 날짜가 바뀌었을 때만 '출석 체크' 로직 실행
+        if (!todayKst.isEqual(lastLoginDateKst)) {
+            if (lastLoginDateKst.isEqual(todayKst.minusDays(1))) {
+                this.consecutiveDays++;
+            } else {
+                this.consecutiveDays = 1;
+            }
         }
 
-        // 마지막 로그인이 '어제'라면 연속 접속일 증가
-        if (lastLoginDateKst.isEqual(todayKst.minusDays(1))) {
-            this.consecutiveDays++;
-        } else {
-            this.consecutiveDays = 1;
-        }
-
-        // 마지막 로그인 시간 갱신
+        // 접속 시간(lastLoginAt)은 출석 여부와 상관없이 '무조건' 최신화
         this.lastLoginAt = LocalDateTime.now();
     }
 
