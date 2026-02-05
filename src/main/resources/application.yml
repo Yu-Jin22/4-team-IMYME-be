@@ -97,6 +97,7 @@ ai-server:
     base-url: ${AI_SERVER_URL}
     secret: ${AI_SERVER_SECRET}
     timeout-seconds: 30
+    warmup-cooldown-seconds: 30
 
 # ==================================================
 # Knowledge 배치 작업 설정
