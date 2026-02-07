@@ -2,11 +2,14 @@ package com.imyme.mine.domain.learning.service;
 
 import com.imyme.mine.domain.ai.client.AiServerClient;
 import com.imyme.mine.domain.ai.dto.solo.*;
+import com.imyme.mine.domain.card.event.AttemptUploadedEvent;
 import com.imyme.mine.domain.card.repository.CardAttemptRepository;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +32,24 @@ public class SoloService {
 
     private static final int MAX_RETRIES = 60;  // 최대 60회 (3분)
     private static final long POLL_INTERVAL_MS = 3000;  // 3초 간격
+
+    /**
+     * 학습 시도 업로드 완료 이벤트 리스너
+     * - Event 기반으로 AttemptService와 결합도 감소
+     * - @Async로 비동기 처리 (별도 스레드에서 실행)
+     */
+    @EventListener
+    @Async
+    public void handleAttemptUploaded(AttemptUploadedEvent event) {
+        log.info("AttemptUploadedEvent 수신 - attemptId: {}", event.getAttemptId());
+
+        startSoloAnalysisAsync(
+            event.getAttemptId(),
+            event.getUserText(),
+            event.getCriteria(),
+            event.getHistory()
+        );
+    }
 
     /**
      * Solo 분석을 비동기로 시작
