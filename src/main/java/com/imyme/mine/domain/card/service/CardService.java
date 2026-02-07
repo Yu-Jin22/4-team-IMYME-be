@@ -40,6 +40,7 @@ public class CardService {
     private final KeywordRepository keywordRepository;
 
     private static final int DEFAULT_LIMIT = 20;
+    private static final int MAX_LIMIT = 100;
 
     @Transactional
     public CardResponse createCard(Long userId, CardCreateRequest request) {
@@ -116,7 +117,8 @@ public class CardService {
         log.debug("카드 목록 조회 - userId: {}, categoryId: {}, keywordIds: {}, excludeGhost: {}, sort: {}, cursor: {}",
             userId, categoryId, keywordIds, excludeGhost, sort, cursor);
 
-        int pageSize = (limit != null && limit > 0) ? limit : DEFAULT_LIMIT;
+        // Pagination 공격 방지: 최대값 제한
+        int pageSize = (limit != null && limit > 0) ? Math.min(limit, MAX_LIMIT) : DEFAULT_LIMIT;
         boolean isRecentFirst = !"oldest".equalsIgnoreCase(sort);
         PageRequest pageRequest = PageRequest.of(0, pageSize + 1);
 
