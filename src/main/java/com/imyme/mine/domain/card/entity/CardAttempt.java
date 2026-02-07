@@ -96,6 +96,11 @@ public class CardAttempt {
         this.finishedAt = LocalDateTime.now();
     }
 
+    public void complete() {
+        this.status = AttemptStatus.COMPLETED;
+        this.finishedAt = LocalDateTime.now();
+    }
+
     public void recordSttResult(String sttText) {
         this.sttText = sttText;
     }

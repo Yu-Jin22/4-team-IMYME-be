@@ -65,7 +65,7 @@ public class SoloFeedbackSaveService {
         // 피드백 저장 완료 시 상태를 COMPLETED로 전환 + 카드 통계 갱신
         Card card = attempt.getCard();
         boolean wasGhost = card.getAttemptCount() == null || card.getAttemptCount() == 0;
-        attempt.complete(attempt.getSttText());
+        attempt.complete(); // sttText는 이미 설정되어 있음
         card.completeAttempt(result.level().shortValue());
         if (wasGhost) {
             card.getUser().incrementActiveCardCount();
