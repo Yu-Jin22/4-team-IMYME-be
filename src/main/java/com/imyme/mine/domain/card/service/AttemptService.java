@@ -59,7 +59,11 @@ public class AttemptService {
         Card card = cardRepository.findByIdAndUserId(cardId, userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
 
-        long attemptCount = cardAttemptRepository.countByCardId(card.getId());
+        // FAILED/EXPIRED 제외하고 실제 유효한 시도만 카운트
+        int attemptCount = cardAttemptRepository.countByCardIdAndStatusIn(
+            card.getId(),
+            List.of(AttemptStatus.PENDING, AttemptStatus.UPLOADED, AttemptStatus.PROCESSING, AttemptStatus.COMPLETED)
+        );
         if (attemptCount >= MAX_ATTEMPTS_PER_CARD) {
             throw new BusinessException(ErrorCode.MAX_ATTEMPTS_EXCEEDED);
         }
