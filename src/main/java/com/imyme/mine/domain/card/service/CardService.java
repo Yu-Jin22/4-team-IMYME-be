@@ -25,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 @Slf4j
@@ -165,18 +167,33 @@ public class CardService {
 
             int lastUnderscore = decoded.lastIndexOf('_');
             if (lastUnderscore == -1) {
+                log.warn("Invalid cursor format: missing underscore - cursor: {}", cursor);
                 throw new BusinessException(ErrorCode.INVALID_REQUEST);
             }
 
             String createdAtStr = decoded.substring(0, lastUnderscore);
             String idStr = decoded.substring(lastUnderscore + 1);
 
-            LocalDateTime createdAt = LocalDateTime.parse(createdAtStr);
+            // DateTimeFormatter를 명시적으로 사용하여 파싱
+            LocalDateTime createdAt = LocalDateTime.parse(
+                createdAtStr,
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME
+            );
             Long id = Long.parseLong(idStr);
 
             return new CursorInfo(createdAt, id);
+
+        } catch (DateTimeParseException e) {
+            log.warn("Invalid cursor format: invalid datetime - cursor: {}", cursor, e);
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        } catch (NumberFormatException e) {
+            log.warn("Invalid cursor format: invalid id - cursor: {}", cursor, e);
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid cursor format: invalid base64 - cursor: {}", cursor, e);
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
         } catch (Exception e) {
-            log.warn("커서 디코딩 실패 - cursor: {}", cursor, e);
+            log.warn("Cursor decoding failed - cursor: {}", cursor, e);
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
     }
