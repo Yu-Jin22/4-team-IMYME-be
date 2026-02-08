@@ -97,7 +97,7 @@ public class CardService {
 
         cardRepository.delete(card);
 
-        if (card.getAttemptCount() != null && card.getAttemptCount() > 0) {
+        if (card.getAttemptCount() > 0) {
             card.getUser().decrementActiveCardCount();
         }
 
