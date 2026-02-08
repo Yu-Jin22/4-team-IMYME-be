@@ -96,7 +96,7 @@ public class UserService {
             return NicknameCheckResponse.ofUnavailable(ReasonCode.INVALID_LENGTH);
         }
 
-        if (nickname.isEmpty() || nickname.length() > 20) {
+        if (nickname.length() > 20) {
             return NicknameCheckResponse.ofUnavailable(ReasonCode.INVALID_LENGTH);
         }
 

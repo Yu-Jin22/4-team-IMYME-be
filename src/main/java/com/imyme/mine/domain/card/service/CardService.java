@@ -95,13 +95,10 @@ public class CardService {
         Card card = cardRepository.findByIdAndUserId(cardId, userId)
             .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
 
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
         cardRepository.delete(card);
 
         if (card.getAttemptCount() != null && card.getAttemptCount() > 0) {
-            user.decrementActiveCardCount();
+            card.getUser().decrementActiveCardCount();
         }
 
         log.info("카드 삭제 완료 - cardId: {}, userId: {}", cardId, userId);
