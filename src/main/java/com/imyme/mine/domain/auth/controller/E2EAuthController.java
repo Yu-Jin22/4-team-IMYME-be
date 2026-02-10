@@ -27,7 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
  * - 실제 OAuth 프로세스를 거치지 않고 고정된 테스트 계정으로 로그인할 수 있습니다.
  */
 @Hidden
-@Profile("test")
+// test(자동화테스트) 또는 dev(개발) 환경에서 활성화
+@Profile({"test", "dev"})
 @Slf4j
 @RestController
 @RequestMapping("/e2e")
