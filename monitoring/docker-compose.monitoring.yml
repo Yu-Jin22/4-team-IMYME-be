@@ -2,68 +2,7 @@ version: '3.8'
 
 services:
   # ==========================================
-  # Pinpoint Stack (APM)
-  # ==========================================
-
-  # Pinpoint HBase - 데이터 저장소
-  pinpoint-hbase:
-    image: pinpointdocker/pinpoint-hbase:3.0.0
-    container_name: imyme-pinpoint-hbase
-    networks:
-      - monitoring
-    environment:
-      - HBASE_ZOOKEEPER_QUORUM=pinpoint-hbase
-    volumes:
-      - hbase-data:/home/pinpoint/hbase
-      - zookeeper-data:/home/pinpoint/zookeeper
-    restart: unless-stopped
-
-  # Pinpoint Collector - Agent로부터 데이터 수집
-  pinpoint-collector:
-    image: pinpointdocker/pinpoint-collector:3.0.0
-    container_name: imyme-pinpoint-collector
-    depends_on:
-      - pinpoint-hbase
-    networks:
-      - monitoring
-    ports:
-      - "9991:9991"   # TCP (agent)
-      - "9992:9992"   # TCP (agent)
-      - "9993:9993"   # TCP (agent)
-      - "9994:9994/tcp"  # TCP (agent)
-      - "9994:9994/udp"  # UDP (agent - stat)
-      - "9995:9995/tcp"  # TCP (agent)
-      - "9995:9995/udp"  # UDP (agent - span)
-      - "9996:9996/udp"  # UDP (agent)
-    environment:
-      - CLUSTER_ENABLE=false
-      - HBASE_HOST=pinpoint-hbase
-      - HBASE_PORT=2181
-      - CLUSTER_ZOOKEEPER_ADDRESS=pinpoint-hbase
-    restart: unless-stopped
-
-  # Pinpoint Web - UI 대시보드
-  pinpoint-web:
-    image: pinpointdocker/pinpoint-web:3.0.0
-    container_name: imyme-pinpoint-web
-    depends_on:
-      - pinpoint-hbase
-      - pinpoint-collector
-    networks:
-      - monitoring
-    ports:
-      - "8079:8080"  # ⚠️ 8080 포트 충돌 방지: 8079로 매핑
-    environment:
-      - CLUSTER_ENABLE=false
-      - HBASE_HOST=pinpoint-hbase
-      - HBASE_PORT=2181
-      - ADMIN_PASSWORD=admin
-      - CLUSTER_ZOOKEEPER_ADDRESS=pinpoint-hbase
-      - SPRING_PROFILES_ACTIVE=release
-    restart: unless-stopped
-
-  # ==========================================
-  # Prometheus + Grafana Stack (메트릭)
+  # Prometheus + Grafana Stack (메트릭 & 시각화)
   # ==========================================
 
   # Prometheus - Spring Boot 메트릭 수집
@@ -71,7 +10,7 @@ services:
     image: prom/prometheus:latest
     container_name: imyme-prometheus
     ports:
-      - "9092:9090"  # 9090 대신 9092 사용 (충돌 방지)
+      - "9092:9090"  # 9090 대신 9092 사용
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -113,7 +52,5 @@ networks:
     driver: bridge
 
 volumes:
-  hbase-data:
-  zookeeper-data:
   prometheus-data:
   grafana-data:
