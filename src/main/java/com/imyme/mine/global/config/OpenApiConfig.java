@@ -25,9 +25,6 @@ import java.util.List;
 @Configuration
 public class OpenApiConfig {
 
-    @Value("${swagger.dev-server-url}")
-    private String devServerUrl;
-
     @Bean
     public OpenAPI openAPI() {
         String jwtSchemeName = "JWT";
@@ -71,7 +68,7 @@ public class OpenApiConfig {
             .description("운영 서버 (Production)");
 
         Server devServer = new Server()
-            .url(devServerUrl)  // 환경변수에서 읽어옴
+            .url("http://dev.imymemine.kr/server")  // 환경변수에서 읽어옴
             .description("개발 서버 (Development)");
 
         Server localServer = new Server()
