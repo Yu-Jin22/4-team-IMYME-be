@@ -19,13 +19,10 @@ export const options = {
   },
 };
 
-const BASE_URL = 'http://host.docker.internal:8080';
+const BASE_URL = 'http://localhost:8080';
 
-// ⚠️ 실제 테스트 시 유효한 JWT 토큰으로 교체 필요
-// 토큰 발급 방법:
-// 1. Swagger UI에서 로그인 후 토큰 복사
-// 2. 또는 /auth/login API 호출 후 응답에서 추출
-const JWT_TOKEN = 'YOUR_JWT_TOKEN_HERE';
+// JWT 토큰 (2026-02-13 발급 - 1시간 유효)
+const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2IiwiaWF0IjoxNzcwOTQzNzAyLCJleHAiOjE3NzA5NDczMDJ9.v2yJiQpoLLtCN5KgeSNGIhLD-JowvPxYoDc9e7Sp3Y4';
 
 export default function () {
   const headers = {

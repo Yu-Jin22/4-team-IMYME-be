@@ -20,12 +20,12 @@ export const options = {
   },
 };
 
-const BASE_URL = 'http://host.docker.internal:8080';
+const BASE_URL = 'http://localhost:8080';
 
-// ⚠️ 실제 테스트 시 유효한 JWT 토큰으로 교체 필요
-const JWT_TOKEN = 'YOUR_JWT_TOKEN_HERE';
+// JWT 토큰 (2026-02-13 발급 - 1시간 유효)
+const JWT_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2IiwiaWF0IjoxNzcwOTQzNzAyLCJleHAiOjE3NzA5NDczMDJ9.v2yJiQpoLLtCN5KgeSNGIhLD-JowvPxYoDc9e7Sp3Y4';
 
-// ⚠️ 실제 테스트 시 존재하는 카드 ID로 교체 필요
+// 테스트용 카드 ID (user_id=6의 첫번째 카드)
 const TEST_CARD_ID = 1;
 
 export default function () {
