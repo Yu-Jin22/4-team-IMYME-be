@@ -18,6 +18,7 @@ spring:
             max-file-size: 20MB
             max-request-size: 20MB
 
+
     mvc:
         throw-exception-if-no-handler-found: true
         pathmatch:
@@ -93,6 +94,20 @@ cors:
 
 swagger:
     dev-server-url: ${SWAGGER_DEV_SERVER_URL}
+
+# ==================================================
+# OAuth Kakao 동적 Redirect URI 설정
+# ==================================================
+oauth:
+    kakao:
+        redirect-uris:
+            local: ${KAKAO_REDIRECT_URI_LOCAL}
+            dev: ${KAKAO_REDIRECT_URI_DEV}
+            prod: ${KAKAO_REDIRECT_URI_PROD}
+        origins:
+            local: ${KAKAO_ORIGIN_LOCAL}
+            dev: ${KAKAO_ORIGIN_DEV}
+            prod: ${KAKAO_ORIGIN_PROD}
 
 # ==================================================
 # 비즈니스 로직 설정 (Attempt, Profile, Knowledge)
