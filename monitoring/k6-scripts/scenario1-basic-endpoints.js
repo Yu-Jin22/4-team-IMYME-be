@@ -19,7 +19,7 @@ export const options = {
   },
 };
 
-const BASE_URL = 'http://host.docker.internal:8080';
+const BASE_URL = 'http://localhost:8080';
 
 export default function () {
   // Health Check
@@ -29,7 +29,25 @@ export default function () {
     'health is UP': (r) => r.json('status') === 'UP',
   });
 
-  sleep(1);
+  sleep(0.5);
+
+  // Master Data - Categories (캐싱 측정용)
+  res = http.get(`${BASE_URL}/categories`);
+  check(res, {
+    'categories status is 200': (r) => r.status === 200,
+    'categories is array': (r) => Array.isArray(r.json('data')),
+  });
+
+  sleep(0.5);
+
+  // Master Data - Keywords (캐싱 측정용)
+  res = http.get(`${BASE_URL}/keywords?categoryId=1`);
+  check(res, {
+    'keywords status is 200': (r) => r.status === 200,
+    'keywords is array': (r) => Array.isArray(r.json('data')),
+  });
+
+  sleep(0.5);
 
   // Prometheus Metrics
   res = http.get(`${BASE_URL}/actuator/prometheus`);
@@ -37,7 +55,7 @@ export default function () {
     'prometheus status is 200': (r) => r.status === 200,
   });
 
-  sleep(1);
+  sleep(0.5);
 }
 
 export function handleSummary(data) {

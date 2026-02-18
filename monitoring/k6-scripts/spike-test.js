@@ -10,19 +10,19 @@ const errorRate = new Rate('errors');
 
 export const options = {
   stages: [
-    { duration: '10s', target: 10 },   // 정상 부하
-    { duration: '10s', target: 500 },  // 급격한 트래픽 증가 (스파이크)
-    { duration: '30s', target: 500 },  // 스파이크 유지
-    { duration: '10s', target: 10 },   // 정상 부하로 복귀
-    { duration: '10s', target: 0 },    // 종료
+    { duration: '10s', target: 10 },    // 정상 부하
+    { duration: '10s', target: 1000 },  // 급격한 트래픽 증가 (스파이크 1000명!)
+    { duration: '30s', target: 1000 },  // 스파이크 유지
+    { duration: '10s', target: 10 },    // 정상 부하로 복귀
+    { duration: '10s', target: 0 },     // 종료
   ],
   thresholds: {
-    http_req_duration: ['p(95)<2000'], // 스파이크 상황에서는 2초까지 허용
-    http_req_failed: ['rate<0.1'],     // 에러율 10% 미만
+    http_req_duration: ['p(95)<3000'], // 스파이크 상황에서는 3초까지 허용
+    http_req_failed: ['rate<0.2'],     // 에러율 20% 미만 (더 관대하게)
   },
 };
 
-const BASE_URL = 'http://host.docker.internal:8080';
+const BASE_URL = 'http://localhost:8080';
 
 export default function () {
   const responses = http.batch([
