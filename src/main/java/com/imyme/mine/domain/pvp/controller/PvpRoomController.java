@@ -9,6 +9,7 @@ import com.imyme.mine.global.common.response.ApiResponse;
 import com.imyme.mine.global.security.UserPrincipal;
 import com.imyme.mine.global.security.annotation.CurrentUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -31,6 +32,7 @@ public class PvpRoomController {
      * 4.1 방 목록 조회
      */
     @Operation(summary = "방 목록 조회", description = "PvP 대결 방 목록을 커서 페이징으로 조회합니다.")
+    @SecurityRequirement(name = "JWT")
     @GetMapping
     public ApiResponse<RoomListResponse> getRooms(
             @CurrentUser UserPrincipal principal,
@@ -47,6 +49,7 @@ public class PvpRoomController {
      * 4.2 방 생성
      */
     @Operation(summary = "방 생성", description = "PvP 대결 방을 생성합니다.")
+    @SecurityRequirement(name = "JWT")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<RoomResponse> createRoom(
@@ -62,6 +65,7 @@ public class PvpRoomController {
      * 4.4 방 상태 조회
      */
     @Operation(summary = "방 상태 조회", description = "PvP 대결 방의 현재 상태를 조회합니다.")
+    @SecurityRequirement(name = "JWT")
     @GetMapping("/{roomId}")
     public ApiResponse<RoomResponse> getRoom(
             @CurrentUser UserPrincipal principal,
