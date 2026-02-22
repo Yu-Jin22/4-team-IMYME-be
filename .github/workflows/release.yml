@@ -154,24 +154,31 @@ jobs:
 
           IMAGE_URI="219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:release-latest"
 
+          cat > /tmp/ssm-params.json << 'ENDJSON'
+          {
+            "commands": [
+              "set -eu",
+              "cd /home/ubuntu",
+              "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 219268921033.dkr.ecr.ap-northeast-2.amazonaws.com",
+              "> /home/ubuntu/.env",
+              "echo '# ------------- COMMON --------------' >> /home/ubuntu/.env",
+              "aws ssm get-parameters-by-path --path '/MINE/MVP1/BE/ENV/COMMON' --with-decryption --query 'Parameters[*].[Name,Value]' --output text --region ap-northeast-2 | while IFS=$(printf '\\t') read -r name value; do key=$(basename \"$name\"); echo \"$key=${value:-}\" >> /home/ubuntu/.env; done",
+              "echo '' >> /home/ubuntu/.env",
+              "echo '# ------------- RELEASE --------------' >> /home/ubuntu/.env",
+              "aws ssm get-parameters-by-path --path '/MINE/MVP1/BE/ENV/RELEASE' --with-decryption --query 'Parameters[*].[Name,Value]' --output text --region ap-northeast-2 | while IFS=$(printf '\\t') read -r name value; do key=$(basename \"$name\"); echo \"$key=${value:-}\" >> /home/ubuntu/.env; done",
+              "IMAGE_URI=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:release-latest",
+              "docker pull $IMAGE_URI",
+              "docker compose up -d",
+              "docker image prune -f"
+            ]
+          }
+          ENDJSON
+
           COMMAND_ID=$(aws ssm send-command \
             --document-name "AWS-RunShellScript" \
             --targets "Key=tag:aws:autoscaling:groupName,Values=mine_mvp1_be_asg" \
             --comment "backend release deploy (${GITHUB_SHA})" \
-            --parameters "commands=[
-              \"set -eu\",
-              \"cd /home/ubuntu\",
-              \"aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 219268921033.dkr.ecr.ap-northeast-2.amazonaws.com\",
-              \"> /home/ubuntu/.env\",
-              \"echo '# ------------- COMMON --------------' >> /home/ubuntu/.env\",
-              \"aws ssm get-parameters-by-path --path '/MINE/MVP1/BE/ENV/COMMON' --with-decryption --query 'Parameters[*].[Name,Value]' --output text --region ap-northeast-2 | while IFS='\\t' read -r name value; do key=\\$(basename \\\"\\$name\\\"); echo \\\"\\$key=\\${value:-}\\\" >> /home/ubuntu/.env; done\",
-              \"echo '' >> /home/ubuntu/.env\",
-              \"echo '# ------------- RELEASE --------------' >> /home/ubuntu/.env\",
-              \"aws ssm get-parameters-by-path --path '/MINE/MVP1/BE/ENV/RELEASE' --with-decryption --query 'Parameters[*].[Name,Value]' --output text --region ap-northeast-2 | while IFS='\\t' read -r name value; do key=\\$(basename \\\"\\$name\\\"); echo \\\"\\$key=\\${value:-}\\\" >> /home/ubuntu/.env; done\",
-              \"docker pull ${IMAGE_URI}\",
-              \"docker compose up -d\",
-              \"docker image prune -f\"
-            ]" \
+            --parameters file:///tmp/ssm-params.json \
             --region ap-northeast-2 \
             --query "Command.CommandId" \
             --output text)
