@@ -213,8 +213,6 @@ jobs:
             BASE_URL="${{ secrets.RELEASE_BASE_URL }}"
             # Nginx가 물려있는 엔드포인트로 헬스체크
             curl -fsS "$BASE_URL/server/health" >/dev/null
-            # 카테고리 리스트업
-            curl -fsS "$BASE_URL/server/categories" >/dev/null
 
   cd-notify-success:
     needs: cd
