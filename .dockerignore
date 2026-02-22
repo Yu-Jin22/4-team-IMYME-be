@@ -13,6 +13,7 @@
 
 # Build
 build/
+!build/libs
 target/
 out/
 .gradle/
