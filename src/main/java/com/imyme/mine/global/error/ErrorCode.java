@@ -71,6 +71,8 @@ public enum ErrorCode {
     DUPLICATE_ROOM(HttpStatus.CONFLICT, "이미 생성한 대기 중인 방이 있습니다."),
     ROOM_ALREADY_MATCHED(HttpStatus.CONFLICT, "이미 다른 사용자가 입장했습니다."),
     CANNOT_JOIN_OWN_ROOM(HttpStatus.BAD_REQUEST, "본인이 만든 방에는 입장할 수 없습니다."),
+    ROOM_CANNOT_BE_DELETED(HttpStatus.FORBIDDEN, "게스트 입장 후에는 방을 삭제할 수 없습니다."),
+    GAME_ALREADY_STARTED(HttpStatus.FORBIDDEN, "게임이 시작되어 나갈 수 없습니다."),
     MAX_ATTEMPTS_EXCEEDED(HttpStatus.CONFLICT, "최대 시도 횟수(5회)를 초과했습니다."),
 
     // ========== 검증 실패 (400, 422) ==========

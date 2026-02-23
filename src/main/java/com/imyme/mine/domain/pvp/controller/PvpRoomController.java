@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "PvP Room", description = "PvP 대결 방 API")
+@Tag(name = "10. PvP Room", description = "PvP 대결 방 API")
 @Slf4j
 @RestController
 @RequestMapping("/pvp/rooms")
@@ -88,5 +88,20 @@ public class PvpRoomController {
 
         log.info("방 상태 조회: userId={}, roomId={}", principal.getId(), roomId);
         return ApiResponse.success(pvpRoomService.getRoom(principal.getId(), roomId));
+    }
+
+    /**
+     * 4.10 방 나가기
+     */
+    @Operation(summary = "방 나가기", description = "PvP 대결 방에서 나갑니다. 호스트는 방을 취소하고, 게스트는 매칭을 취소합니다.")
+    @SecurityRequirement(name = "JWT")
+    @DeleteMapping("/{roomId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leaveRoom(
+            @CurrentUser UserPrincipal principal,
+            @PathVariable Long roomId) {
+
+        log.info("방 나가기: userId={}, roomId={}", principal.getId(), roomId);
+        pvpRoomService.leaveRoom(principal.getId(), roomId);
     }
 }

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "5. Category", description = "카테고리 조회 및 카테고리별 키워드 조회 API")
+@Tag(name = "05. Category", description = "카테고리 조회 및 카테고리별 키워드 조회 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/categories")

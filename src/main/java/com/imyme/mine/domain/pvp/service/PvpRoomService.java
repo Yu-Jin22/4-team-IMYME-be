@@ -244,6 +244,52 @@ public class PvpRoomService {
         return toRoomResponse(room, null);
     }
 
+    /**
+     * 4.10 방 나가기
+     */
+    @Transactional
+    public void leaveRoom(Long userId, Long roomId) {
+        PvpRoom room = pvpRoomRepository.findByIdWithDetails(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
+        // 참여자 확인
+        if (!room.isParticipant(userId)) {
+            throw new BusinessException(ErrorCode.NOT_PARTICIPANT);
+        }
+
+        // THINKING 이후 상태에서는 나가기 불가
+        if (room.getStatus() == PvpRoomStatus.THINKING ||
+            room.getStatus() == PvpRoomStatus.RECORDING ||
+            room.getStatus() == PvpRoomStatus.PROCESSING ||
+            room.getStatus() == PvpRoomStatus.FINISHED) {
+            throw new BusinessException(ErrorCode.GAME_ALREADY_STARTED);
+        }
+
+        if (room.isHost(userId)) {
+            // 호스트 나가기
+            if (room.getStatus() == PvpRoomStatus.MATCHED) {
+                // 게스트 입장 후에는 방 삭제 불가
+                throw new BusinessException(ErrorCode.ROOM_CANNOT_BE_DELETED);
+            }
+
+            // OPEN 상태에서만 방 취소 가능
+            room.cancel();
+            pvpRoomRepository.save(room);
+            log.info("호스트 방 나가기: roomId={}, status=CANCELED", roomId);
+
+        } else {
+            // 게스트 나가기
+            if (room.getStatus() != PvpRoomStatus.MATCHED) {
+                throw new BusinessException(ErrorCode.GAME_ALREADY_STARTED);
+            }
+
+            // 게스트 제거, 방 OPEN으로 복구
+            room.removeGuest();
+            pvpRoomRepository.save(room);
+            log.info("게스트 방 나가기: roomId={}, status=OPEN", roomId);
+        }
+    }
+
     // ===== 내부 변환 메서드 =====
 
     RoomResponse toRoomResponse(PvpRoom room, String message) {
