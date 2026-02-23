@@ -45,6 +45,9 @@ out/
 logs/
 *.log
 
+# WebSocket test pages (development only)
+src/main/resources/static/websocket-test.html
+
 # Environment variables
 /src/main/resources/.env
 .env
