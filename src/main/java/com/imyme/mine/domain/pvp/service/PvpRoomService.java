@@ -11,11 +11,11 @@ import com.imyme.mine.domain.pvp.dto.request.CreateRoomRequest;
 import com.imyme.mine.domain.pvp.dto.request.CreateSubmissionRequest;
 import com.imyme.mine.domain.pvp.dto.response.RoomListResponse;
 import com.imyme.mine.domain.pvp.dto.response.RoomResponse;
+import com.imyme.mine.domain.pvp.dto.response.RoomResultResponse;
 import com.imyme.mine.domain.pvp.dto.response.SubmissionResponse;
-import com.imyme.mine.domain.pvp.entity.PvpRoom;
-import com.imyme.mine.domain.pvp.entity.PvpRoomStatus;
-import com.imyme.mine.domain.pvp.entity.PvpSubmission;
-import com.imyme.mine.domain.pvp.entity.PvpSubmissionStatus;
+import com.imyme.mine.domain.pvp.entity.*;
+import com.imyme.mine.domain.pvp.repository.PvpFeedbackRepository;
+import com.imyme.mine.domain.pvp.repository.PvpHistoryRepository;
 import com.imyme.mine.domain.pvp.repository.PvpRoomRepository;
 import com.imyme.mine.domain.pvp.repository.PvpSubmissionRepository;
 import com.imyme.mine.domain.storage.dto.PresignedUrlResponse;
@@ -43,6 +43,8 @@ public class PvpRoomService {
     private final UserRepository userRepository;
     private final ForbiddenWordService forbiddenWordService;
     private final PvpSubmissionRepository pvpSubmissionRepository;
+    private final PvpHistoryRepository pvpHistoryRepository;
+    private final PvpFeedbackRepository pvpFeedbackRepository;
     private final StorageService storageService;
     private final PvpAsyncService pvpAsyncService;
     // TODO v2: RabbitMQ Producer 주입
@@ -417,6 +419,112 @@ public class PvpRoomService {
             pvpRoomRepository.save(room);
             log.info("게스트 방 나가기: roomId={}, status=OPEN", roomId);
         }
+    }
+
+    /**
+     * 4.7 PvP 결과 조회
+     */
+    public RoomResultResponse getRoomResult(Long userId, Long roomId) {
+        // 1. 방 조회
+        PvpRoom room = pvpRoomRepository.findByIdWithDetails(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
+
+        // 2. 참여자 확인
+        if (!room.isParticipant(userId)) {
+            throw new BusinessException(ErrorCode.NOT_PARTICIPANT);
+        }
+
+        // 3. PROCESSING 상태 처리
+        if (room.getStatus() == PvpRoomStatus.PROCESSING) {
+            return RoomResultResponse.builder()
+                    .roomId(roomId)
+                    .status(PvpRoomStatus.PROCESSING)
+                    .message("AI 분석 중입니다.")
+                    .build();
+        }
+
+        // 4. FINISHED 상태 확인
+        if (room.getStatus() != PvpRoomStatus.FINISHED) {
+            throw new BusinessException(ErrorCode.INVALID_ROOM_STATUS);
+        }
+
+        // 5. 상대방 userId 파악
+        Long opponentUserId = room.isHost(userId) ? room.getGuestUser().getId() : room.getHostUser().getId();
+
+        // 6. 내 결과 조회
+        PvpHistory myHistory = pvpHistoryRepository.findByRoomIdAndUserId(roomId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        PvpFeedback myFeedback = pvpFeedbackRepository.findByRoomIdAndUserId(roomId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        PvpSubmission mySubmission = pvpSubmissionRepository.findByRoomIdAndUserId(roomId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND));
+
+        // 7. 상대방 결과 조회
+        PvpHistory opponentHistory = pvpHistoryRepository.findByRoomIdAndUserId(roomId, opponentUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        PvpFeedback opponentFeedback = pvpFeedbackRepository.findByRoomIdAndUserId(roomId, opponentUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        PvpSubmission opponentSubmission = pvpSubmissionRepository.findByRoomIdAndUserId(roomId, opponentUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND));
+
+        // 8. 응답 생성
+        return RoomResultResponse.builder()
+                .roomId(roomId)
+                .status(PvpRoomStatus.FINISHED)
+                .keyword(RoomResultResponse.KeywordInfo.builder()
+                        .id(room.getKeyword().getId())
+                        .name(room.getKeyword().getName())
+                        .build())
+                .myResult(buildPlayerResult(myHistory, myFeedback, mySubmission, true))
+                .opponentResult(buildPlayerResult(opponentHistory, opponentFeedback, opponentSubmission, false))
+                .winner(room.getWinnerUser() != null ? RoomResultResponse.WinnerInfo.builder()
+                        .userId(room.getWinnerUser().getId())
+                        .nickname(room.getWinnerUser().getNickname())
+                        .build() : null)
+                .finishedAt(room.getFinishedAt())
+                .build();
+    }
+
+    private RoomResultResponse.PlayerResult buildPlayerResult(
+            PvpHistory history,
+            PvpFeedback feedback,
+            PvpSubmission submission,
+            boolean includeHistoryInfo) {
+
+        // FeedbackDetail 파싱
+        RoomResultResponse.FeedbackDetail feedbackDetail = parseFeedbackJson(feedback.getPvpFeedbackJson());
+
+        RoomResultResponse.PlayerResult.PlayerResultBuilder builder = RoomResultResponse.PlayerResult.builder()
+                .userId(history.getUser().getId())
+                .nickname(history.getUser().getNickname())
+                .score(feedback.getScore())
+                .audioUrl(submission.getAudioUrl())
+                .durationSeconds(submission.getDurationSeconds())
+                .sttText(submission.getSttText())
+                .feedback(feedbackDetail);
+
+        // myResult만 historyId, isHidden 포함
+        if (includeHistoryInfo) {
+            builder.historyId(history.getId())
+                    .isHidden(history.getIsHidden());
+        }
+
+        return builder.build();
+    }
+
+    @SuppressWarnings("unchecked")
+    private RoomResultResponse.FeedbackDetail parseFeedbackJson(Object feedbackJson) {
+        if (feedbackJson instanceof java.util.Map) {
+            java.util.Map<String, Object> map = (java.util.Map<String, Object>) feedbackJson;
+            return RoomResultResponse.FeedbackDetail.builder()
+                    .summary((String) map.get("summary"))
+                    .keywords((String) map.get("keywords"))
+                    .facts((String) map.get("facts"))
+                    .understanding((String) map.get("understanding"))
+                    .socraticFeedback((String) map.get("socraticFeedback"))
+                    .build();
+        }
+        return null;
     }
 
     // ===== 내부 변환 메서드 =====

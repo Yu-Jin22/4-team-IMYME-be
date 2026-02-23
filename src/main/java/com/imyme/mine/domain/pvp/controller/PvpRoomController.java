@@ -5,6 +5,7 @@ import com.imyme.mine.domain.pvp.dto.request.CreateRoomRequest;
 import com.imyme.mine.domain.pvp.dto.request.CreateSubmissionRequest;
 import com.imyme.mine.domain.pvp.dto.response.RoomListResponse;
 import com.imyme.mine.domain.pvp.dto.response.RoomResponse;
+import com.imyme.mine.domain.pvp.dto.response.RoomResultResponse;
 import com.imyme.mine.domain.pvp.dto.response.SubmissionResponse;
 import com.imyme.mine.domain.pvp.entity.PvpRoomStatus;
 import com.imyme.mine.domain.pvp.service.PvpRoomService;
@@ -147,6 +148,20 @@ public class PvpRoomController {
                 principal.getId(), submissionId, request);
 
         return ApiResponse.success(response);
+    }
+
+    /**
+     * 4.7 PvP 결과 조회
+     */
+    @Operation(summary = "PvP 결과 조회", description = "PvP 대결 결과를 조회합니다. PROCESSING 상태면 분석 중 메시지, FINISHED 상태면 전체 결과를 반환합니다.")
+    @SecurityRequirement(name = "JWT")
+    @GetMapping("/{roomId}/result")
+    public ApiResponse<RoomResultResponse> getRoomResult(
+            @CurrentUser UserPrincipal principal,
+            @PathVariable Long roomId) {
+
+        log.info("PvP 결과 조회: userId={}, roomId={}", principal.getId(), roomId);
+        return ApiResponse.success(pvpRoomService.getRoomResult(principal.getId(), roomId));
     }
 
     /**
