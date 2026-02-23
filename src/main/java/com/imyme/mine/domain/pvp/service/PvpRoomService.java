@@ -6,8 +6,6 @@ import com.imyme.mine.domain.category.entity.Category;
 import com.imyme.mine.domain.category.repository.CategoryRepository;
 import com.imyme.mine.domain.forbidden.entity.ForbiddenWordType;
 import com.imyme.mine.domain.forbidden.service.ForbiddenWordService;
-import com.imyme.mine.domain.keyword.entity.Keyword;
-import com.imyme.mine.domain.keyword.repository.KeywordRepository;
 import com.imyme.mine.domain.pvp.dto.request.CreateRoomRequest;
 import com.imyme.mine.domain.pvp.dto.request.CreateSubmissionRequest;
 import com.imyme.mine.domain.pvp.dto.response.RoomListResponse;
@@ -24,7 +22,6 @@ import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -43,9 +40,9 @@ public class PvpRoomService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final ForbiddenWordService forbiddenWordService;
-    private final KeywordRepository keywordRepository;
     private final PvpSubmissionRepository pvpSubmissionRepository;
     private final StorageService storageService;
+    private final PvpAsyncService pvpAsyncService;
 
     /**
      * 4.1 방 목록 조회 (커서 페이징)
@@ -195,77 +192,9 @@ public class PvpRoomService {
         log.info("게스트 입장: roomId={}, userId={}, status=MATCHED", roomId, userId);
 
         // 3초 후 키워드 배정 및 THINKING 전환 (비동기)
-        scheduleThinkingTransition(roomId);
+        pvpAsyncService.scheduleThinkingTransition(roomId);
 
         return toRoomResponse(room, "매칭 완료! 잠시 후 키워드가 공개됩니다.");
-    }
-
-    /**
-     * 3초 후 키워드 배정 및 THINKING 전환
-     */
-    @Async
-    @Transactional
-    public void scheduleThinkingTransition(Long roomId) {
-        try {
-            Thread.sleep(3000);
-
-            PvpRoom room = pvpRoomRepository.findByIdWithDetails(roomId)
-                    .orElse(null);
-
-            if (room == null || room.getStatus() != PvpRoomStatus.MATCHED) {
-                log.warn("THINKING 전환 실패: 방 상태 불일치 - roomId={}", roomId);
-                return;
-            }
-
-            // 키워드 랜덤 배정
-            List<Keyword> keywords = keywordRepository.findAllByCategoryIdAndIsActiveOrderByDisplayOrderAsc(
-                    room.getCategory().getId(), true);
-
-            if (keywords.isEmpty()) {
-                log.error("THINKING 전환 실패: 키워드 없음 - roomId={}, categoryId={}", roomId, room.getCategory().getId());
-                return;
-            }
-
-            Keyword randomKeyword = keywords.get((int) (Math.random() * keywords.size()));
-            room.startThinking(randomKeyword);
-
-            pvpRoomRepository.save(room);
-            log.info("THINKING 전환 완료: roomId={}, keywordId={}", roomId, randomKeyword.getId());
-
-            // 30초 후 RECORDING 자동 전환
-            scheduleRecordingTransition(roomId);
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("THINKING 전환 중단: roomId={}", roomId, e);
-        }
-    }
-
-    /**
-     * 30초 후 RECORDING 자동 전환
-     */
-    @Async
-    @Transactional
-    public void scheduleRecordingTransition(Long roomId) {
-        try {
-            Thread.sleep(30000); // 30초 대기
-
-            PvpRoom room = pvpRoomRepository.findByIdWithDetails(roomId)
-                    .orElse(null);
-
-            if (room == null || room.getStatus() != PvpRoomStatus.THINKING) {
-                log.warn("RECORDING 전환 실패: 방 상태 불일치 - roomId={}", roomId);
-                return;
-            }
-
-            room.startRecording();
-            pvpRoomRepository.save(room);
-            log.info("RECORDING 자동 전환 완료: roomId={}", roomId);
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("RECORDING 전환 중단: roomId={}", roomId, e);
-        }
     }
 
     /**
