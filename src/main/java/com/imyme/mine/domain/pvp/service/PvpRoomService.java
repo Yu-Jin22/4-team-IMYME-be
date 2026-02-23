@@ -255,6 +255,12 @@ public class PvpRoomService {
                     .build();
         }
 
+        // THINKING 상태일 때 생각 종료 시간 계산 (시작 시간 + 30초)
+        LocalDateTime thinkingEndsAt = null;
+        if (room.getStatus() == PvpRoomStatus.THINKING && room.getStartedAt() != null) {
+            thinkingEndsAt = room.getStartedAt().plusSeconds(30);
+        }
+
         return RoomResponse.builder()
                 .id(room.getId())
                 .categoryId(room.getCategory().getId())
@@ -269,6 +275,7 @@ public class PvpRoomService {
                 .createdAt(room.getCreatedAt())
                 .matchedAt(room.getMatchedAt())
                 .startedAt(room.getStartedAt())
+                .thinkingEndsAt(thinkingEndsAt)
                 .message(message)
                 .build();
     }
