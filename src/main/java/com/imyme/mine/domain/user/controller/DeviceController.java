@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
  * 기기 관리 컨트롤러
  * - FCM 토큰 등록 및 기기 정보 관리
  */
-@Tag(name = "4. Device", description = "기기 등록/삭제, FCM 푸시 토큰 관리 API")
+@Tag(name = "04. Device", description = "기기 등록/삭제, FCM 푸시 토큰 관리 API")
 @Slf4j
 @RestController
 @RequestMapping("/users/me/devices")

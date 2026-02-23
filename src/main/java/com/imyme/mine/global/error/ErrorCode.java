@@ -53,6 +53,7 @@ public enum ErrorCode {
     INVALID_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 상태입니다."),
     INVALID_AUDIO_URL(HttpStatus.BAD_REQUEST, "유효하지 않은 오디오 URL입니다."),
     INVALID_CARD_ATTEMPT_MISMATCH(HttpStatus.BAD_REQUEST, "카드와 시도 ID가 일치하지 않습니다."),
+    INVALID_CURSOR(HttpStatus.BAD_REQUEST, "유효하지 않은 커서입니다."),
     INVALID_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 타입입니다."),
     INVALID_AGENT_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 Agent Type입니다."),
     INVALID_PLATFORM_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 Platform Type입니다."),
@@ -68,6 +69,10 @@ public enum ErrorCode {
     ROOM_FULL(HttpStatus.CONFLICT, "방이 가득 찼습니다."),
     ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여한 방입니다."),
     DUPLICATE_ROOM(HttpStatus.CONFLICT, "이미 생성한 대기 중인 방이 있습니다."),
+    ROOM_ALREADY_MATCHED(HttpStatus.CONFLICT, "이미 다른 사용자가 입장했습니다."),
+    CANNOT_JOIN_OWN_ROOM(HttpStatus.BAD_REQUEST, "본인이 만든 방에는 입장할 수 없습니다."),
+    ROOM_CANNOT_BE_DELETED(HttpStatus.FORBIDDEN, "게스트 입장 후에는 방을 삭제할 수 없습니다."),
+    GAME_ALREADY_STARTED(HttpStatus.FORBIDDEN, "게임이 시작되어 나갈 수 없습니다."),
     MAX_ATTEMPTS_EXCEEDED(HttpStatus.CONFLICT, "최대 시도 횟수(5회)를 초과했습니다."),
 
     // ========== 검증 실패 (400, 422) ==========

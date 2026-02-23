@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Health Check API
  * - 서버 상태 확인용
  */
-@Tag(name = "1. Health", description = "서버 상태 확인 API")
+@Tag(name = "01. Health", description = "서버 상태 확인 API")
 @RestController
 public class HealthController {
 

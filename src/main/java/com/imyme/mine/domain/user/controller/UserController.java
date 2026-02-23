@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.*;
  * 사용자 관련 API 컨트롤러
  * - 프로필 조회/수정, 닉네임 중복 확인, 프로필 이미지 업로드용 Presigned URL 발급, 회원 탈퇴
  */
-@Tag(name = "3. User", description = "프로필 조회/수정, 닉네임 검증, 프로필 이미지 업로드, 회원 탈퇴 API")
+@Tag(name = "03. User", description = "프로필 조회/수정, 닉네임 검증, 프로필 이미지 업로드, 회원 탈퇴 API")
 @Slf4j
 @RestController
 @RequestMapping("/users")

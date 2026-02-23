@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "PvP Room", description = "PvP 대결 방 API")
+@Tag(name = "10. PvP Room", description = "PvP 대결 방 API")
 @Slf4j
 @RestController
 @RequestMapping("/pvp/rooms")
@@ -39,7 +39,7 @@ public class PvpRoomController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(defaultValue = "OPEN") PvpRoomStatus status,
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size) {
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
         log.info("방 목록 조회: userId={}, categoryId={}, status={}", principal.getId(), categoryId, status);
         return ApiResponse.success(pvpRoomService.getRooms(categoryId, status, cursor, size));
@@ -62,6 +62,21 @@ public class PvpRoomController {
     }
 
     /**
+     * 4.3 방 입장 (게스트)
+     */
+    @Operation(summary = "방 입장", description = "PvP 대결 방에 게스트로 입장합니다.")
+    @SecurityRequirement(name = "JWT")
+    @PostMapping("/{roomId}/join")
+    public ApiResponse<RoomResponse> joinRoom(
+            @CurrentUser UserPrincipal principal,
+            @PathVariable Long roomId) {
+
+        log.info("방 입장: userId={}, roomId={}", principal.getId(), roomId);
+        RoomResponse response = pvpRoomService.joinRoom(principal.getId(), roomId);
+        return ApiResponse.success(response);
+    }
+
+    /**
      * 4.4 방 상태 조회
      */
     @Operation(summary = "방 상태 조회", description = "PvP 대결 방의 현재 상태를 조회합니다.")
@@ -73,5 +88,20 @@ public class PvpRoomController {
 
         log.info("방 상태 조회: userId={}, roomId={}", principal.getId(), roomId);
         return ApiResponse.success(pvpRoomService.getRoom(principal.getId(), roomId));
+    }
+
+    /**
+     * 4.10 방 나가기
+     */
+    @Operation(summary = "방 나가기", description = "PvP 대결 방에서 나갑니다. 호스트는 방을 취소하고, 게스트는 매칭을 취소합니다.")
+    @SecurityRequirement(name = "JWT")
+    @DeleteMapping("/{roomId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leaveRoom(
+            @CurrentUser UserPrincipal principal,
+            @PathVariable Long roomId) {
+
+        log.info("방 나가기: userId={}, roomId={}", principal.getId(), roomId);
+        pvpRoomService.leaveRoom(principal.getId(), roomId);
     }
 }

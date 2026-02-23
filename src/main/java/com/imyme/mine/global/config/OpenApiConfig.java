@@ -82,16 +82,7 @@ public class OpenApiConfig {
             .info(apiInfo())
             .addSecurityItem(securityRequirement)
             .components(components)
-            .servers(List.of(prodServer, devServer, localServer))
-            .addTagsItem(new Tag().name("1. Health").description("서버 상태 확인 API"))
-            .addTagsItem(new Tag().name("2. Auth").description("OAuth 로그인, 토큰 관리, 로그아웃 API"))
-            .addTagsItem(new Tag().name("3. User").description("프로필 조회/수정, 닉네임 검증, 프로필 이미지 업로드, 회원 탈퇴 API"))
-            .addTagsItem(new Tag().name("4. Device").description("기기 등록/삭제, FCM 푸시 토큰 관리 API"))
-            .addTagsItem(new Tag().name("5. Category").description("카테고리 조회 및 카테고리별 키워드 조회 API"))
-            .addTagsItem(new Tag().name("6. Keyword").description("카테고리별 키워드 전체 조회 API"))
-            .addTagsItem(new Tag().name("7. Study Card").description("학습 카드 생성/조회/수정/삭제 API"))
-            .addTagsItem(new Tag().name("8. Study Attempt").description("학습 시도 생성/조회/삭제, 오디오 업로드 완료 처리 API"))
-            .addTagsItem(new Tag().name("9. Study Audio").description("학습 오디오 업로드용 Presigned URL 발급 API"));
+            .servers(List.of(prodServer, devServer, localServer));
     }
 
     private Info apiInfo() {

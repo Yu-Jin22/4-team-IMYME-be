@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "2. Auth", description = "OAuth 로그인, 토큰 관리, 로그아웃 API")
+@Tag(name = "02. Auth", description = "OAuth 로그인, 토큰 관리, 로그아웃 API")
 @Slf4j
 @RestController
 @RequestMapping("/auth")
