@@ -9,10 +9,7 @@ import com.imyme.mine.domain.forbidden.service.ForbiddenWordService;
 import com.imyme.mine.domain.pvp.dto.request.CompleteSubmissionRequest;
 import com.imyme.mine.domain.pvp.dto.request.CreateRoomRequest;
 import com.imyme.mine.domain.pvp.dto.request.CreateSubmissionRequest;
-import com.imyme.mine.domain.pvp.dto.response.RoomListResponse;
-import com.imyme.mine.domain.pvp.dto.response.RoomResponse;
-import com.imyme.mine.domain.pvp.dto.response.RoomResultResponse;
-import com.imyme.mine.domain.pvp.dto.response.SubmissionResponse;
+import com.imyme.mine.domain.pvp.dto.response.*;
 import com.imyme.mine.domain.pvp.entity.*;
 import com.imyme.mine.domain.pvp.repository.PvpFeedbackRepository;
 import com.imyme.mine.domain.pvp.repository.PvpHistoryRepository;
@@ -525,6 +522,108 @@ public class PvpRoomService {
                     .build();
         }
         return null;
+    }
+
+    /**
+     * 4.8 내 PvP 기록 조회
+     */
+    public MyRoomsResponse getMyHistories(
+            Long userId,
+            Long categoryId,
+            Long keywordId,
+            boolean includeHidden,
+            String sort,
+            String cursor,
+            int size) {
+
+        // 1. 커서 파싱
+        LocalDateTime cursorFinishedAt = null;
+        Integer cursorScore = null;
+        Long lastId = null;
+
+        if (cursor != null && !cursor.isBlank()) {
+            try {
+                String[] parts = cursor.split("_");
+                if (parts.length == 2) {
+                    lastId = Long.parseLong(parts[1]);
+                    if ("score".equals(sort)) {
+                        cursorScore = Integer.parseInt(parts[0]);
+                    } else {
+                        cursorFinishedAt = LocalDateTime.parse(parts[0]);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Invalid cursor format: {}", cursor, e);
+                throw new BusinessException(ErrorCode.INVALID_CURSOR);
+            }
+        }
+
+        // 2. Repository 조회
+        Pageable pageable = PageRequest.of(0, size + 1);
+        List<PvpHistory> histories;
+
+        if ("score".equals(sort)) {
+            histories = pvpHistoryRepository.findMyHistoriesByScore(
+                    userId, includeHidden, categoryId, keywordId, cursorScore, lastId, pageable);
+        } else if ("finishedAt".equals(sort) || sort == null) {
+            histories = pvpHistoryRepository.findMyHistories(
+                    userId, includeHidden, categoryId, keywordId, cursorFinishedAt, lastId, pageable);
+        } else {
+            throw new BusinessException(ErrorCode.INVALID_TYPE);
+        }
+
+        // 3. hasNext 판단
+        boolean hasNext = histories.size() > size;
+        List<PvpHistory> pageHistories = hasNext ? histories.subList(0, size) : histories;
+
+        // 4. nextCursor 생성
+        String nextCursor = null;
+        if (hasNext && !pageHistories.isEmpty()) {
+            PvpHistory last = pageHistories.get(pageHistories.size() - 1);
+            if ("score".equals(sort)) {
+                nextCursor = last.getScore() + "_" + last.getId();
+            } else {
+                nextCursor = last.getFinishedAt() + "_" + last.getId();
+            }
+        }
+
+        // 5. 응답 생성
+        List<MyRoomsResponse.HistoryItem> items = pageHistories.stream()
+                .map(this::toHistoryItem)
+                .toList();
+
+        return MyRoomsResponse.builder()
+                .histories(items)
+                .meta(MyRoomsResponse.PageMeta.builder()
+                        .size(size)
+                        .hasNext(hasNext)
+                        .nextCursor(nextCursor)
+                        .build())
+                .build();
+    }
+
+    private MyRoomsResponse.HistoryItem toHistoryItem(PvpHistory history) {
+        // 상대방 점수 조회 (같은 방의 다른 유저)
+        Long opponentUserId = history.getOpponentUser().getId();
+        Integer opponentScore = pvpHistoryRepository.findByRoomIdAndUserId(
+                        history.getRoom().getId(), opponentUserId)
+                .map(PvpHistory::getScore)
+                .orElse(null);
+
+        return MyRoomsResponse.HistoryItem.builder()
+                .id(history.getId())
+                .roomId(history.getRoom().getId())
+                .categoryName(history.getCategoryName())
+                .keywordName(history.getKeywordName())
+                .myRole(history.getRole())
+                .myScore(history.getScore())
+                .myLevel(history.getLevel())
+                .opponentNickname(history.getOpponentNickname())
+                .opponentScore(opponentScore)
+                .isWinner(history.getIsWinner())
+                .isHidden(history.getIsHidden())
+                .finishedAt(history.getFinishedAt())
+                .build();
     }
 
     // ===== 내부 변환 메서드 =====
