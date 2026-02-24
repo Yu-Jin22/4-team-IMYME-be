@@ -1,5 +1,6 @@
 package com.imyme.mine.domain.pvp.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.imyme.mine.domain.pvp.entity.PvpRoomStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,15 +14,33 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RoomResultResponse {
-    private Long roomId;
-    private PvpRoomStatus status;
+    private RoomInfo room;
+    private CategoryInfo category;
     private KeywordInfo keyword;
+    private PvpRoomStatus status;
     private PlayerResult myResult;
     private PlayerResult opponentResult;
-    private WinnerInfo winner;
+    private UserInfo winner;
     private LocalDateTime finishedAt;
     private String message;
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class RoomInfo {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class CategoryInfo {
+        private Long id;
+        private String name;
+    }
 
     @Getter
     @AllArgsConstructor
@@ -37,8 +56,7 @@ public class RoomResultResponse {
     public static class PlayerResult {
         private Long historyId;
         private Boolean isHidden;
-        private Long userId;
-        private String nickname;
+        private UserInfo user;
         private Integer score;
         private String audioUrl;
         private Integer durationSeconds;
@@ -49,19 +67,21 @@ public class RoomResultResponse {
     @Getter
     @AllArgsConstructor
     @Builder
-    public static class FeedbackDetail {
-        private String summary;
-        private String keywords;
-        private String facts;
-        private String understanding;
-        private String socraticFeedback;
+    public static class UserInfo {
+        private Long id;
+        private String nickname;
+        private String profileImageUrl;
+        private Integer level;
     }
 
     @Getter
     @AllArgsConstructor
     @Builder
-    public static class WinnerInfo {
-        private Long userId;
-        private String nickname;
+    public static class FeedbackDetail {
+        private String summary;
+        private java.util.List<String> keywords;
+        private String facts;
+        private String understanding;
+        private String personalizedFeedback;
     }
 }

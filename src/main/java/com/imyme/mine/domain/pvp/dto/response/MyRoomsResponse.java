@@ -22,18 +22,59 @@ public class MyRoomsResponse {
     @AllArgsConstructor
     @Builder
     public static class HistoryItem {
-        private Long id;
-        private Long roomId;
-        private String categoryName;
-        private String keywordName;
+        private Long historyId;
+        private RoomInfo room;
+        private CategoryInfo category;
+        private KeywordInfo keyword;
         private PvpRole myRole;
-        private Integer myScore;
-        private Integer myLevel;
-        private String opponentNickname;
-        private Integer opponentScore;
-        private Boolean isWinner;
+        private MyResult myResult;
+        private OpponentInfo opponent;
         private Boolean isHidden;
         private LocalDateTime finishedAt;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class RoomInfo {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class CategoryInfo {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class KeywordInfo {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class MyResult {
+        private Integer score;
+        private Integer level;
+        private Boolean isWinner;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class OpponentInfo {
+        private Long id;
+        private String nickname;
+        private String profileImageUrl;
+        private Integer level;
+        private Integer score;
     }
 
     @Getter
