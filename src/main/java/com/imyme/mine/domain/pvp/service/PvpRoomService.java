@@ -17,11 +17,13 @@ import com.imyme.mine.domain.pvp.repository.PvpRoomRepository;
 import com.imyme.mine.domain.pvp.repository.PvpSubmissionRepository;
 import com.imyme.mine.domain.storage.dto.PresignedUrlResponse;
 import com.imyme.mine.domain.storage.service.StorageService;
+import com.imyme.mine.domain.user.service.ProfileImageService;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import com.imyme.mine.global.messaging.MessagePublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -48,6 +50,7 @@ public class PvpRoomService {
     private final StorageService storageService;
     private final PvpAsyncService pvpAsyncService;
     private final MessagePublisher messagePublisher;
+    private final ProfileImageService profileImageService;
     // TODO v2: RabbitMQ Producer 주입
     // private final RabbitTemplate rabbitTemplate;
 
@@ -191,9 +194,14 @@ public class PvpRoomService {
         // 저장 (낙관적 락으로 동시성 제어, saveAndFlush로 즉시 flush → 예외를 여기서 처리)
         try {
             pvpRoomRepository.saveAndFlush(room);
-        } catch (Exception e) {
-            log.warn("방 입장 실패 (동시성): roomId={}, userId={}", roomId, userId, e);
+        } catch (OptimisticLockingFailureException e) {
+            // 다른 사용자가 동시에 입장하여 버전 충돌 발생
+            log.warn("동시 입장 시도로 인한 충돌: roomId={}, userId={}", roomId, userId);
             throw new BusinessException(ErrorCode.ROOM_ALREADY_MATCHED);
+        } catch (Exception e) {
+            // 기타 예상치 못한 오류
+            log.error("방 입장 중 예상치 못한 오류 발생: roomId={}, userId={}", roomId, userId, e);
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
         log.info("게스트 입장: roomId={}, userId={}, status=MATCHED", roomId, userId);
@@ -515,8 +523,13 @@ public class PvpRoomService {
             throw new BusinessException(ErrorCode.INVALID_ROOM_STATUS);
         }
 
-        // 5. 상대방 userId 파악
-        Long opponentUserId = room.isHost(userId) ? room.getGuestUser().getId() : room.getHostUser().getId();
+        // 5. 상대방 userId 파악 (NPE 방지)
+        User opponentUser = room.isHost(userId) ? room.getGuestUser() : room.getHostUser();
+        if (opponentUser == null) {
+            log.error("결과 조회 시 상대방 정보 없음: roomId={}, userId={}", roomId, userId);
+            throw new BusinessException(ErrorCode.INVALID_ROOM_STATUS);
+        }
+        Long opponentUserId = opponentUser.getId();
 
         // 6. 내 결과 조회
         PvpHistory myHistory = pvpHistoryRepository.findByRoomIdAndUserId(roomId, userId)
@@ -556,7 +569,8 @@ public class PvpRoomService {
                 .winner(winner != null ? RoomResultResponse.UserInfo.builder()
                         .id(winner.getId())
                         .nickname(winner.getNickname())
-                        .profileImageUrl(winner.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                winner.getProfileImageKey(), winner.getProfileImageUrl()))
                         .level(winner.getLevel())
                         .build() : null)
                 .finishedAt(room.getFinishedAt())
@@ -578,7 +592,8 @@ public class PvpRoomService {
                 .user(RoomResultResponse.UserInfo.builder()
                         .id(user.getId())
                         .nickname(user.getNickname())
-                        .profileImageUrl(user.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                user.getProfileImageKey(), user.getProfileImageUrl()))
                         .level(user.getLevel())
                         .build())
                 .score(feedback.getScore())
@@ -682,9 +697,25 @@ public class PvpRoomService {
             }
         }
 
-        // 5. 응답 생성
+        // 5. 상대방 점수 일괄 조회 (N+1 방지)
+        List<Long> roomIds = pageHistories.stream()
+                .map(h -> h.getRoom().getId())
+                .toList();
+
+        // roomId -> userId -> score 매핑
+        java.util.Map<Long, java.util.Map<Long, Integer>> opponentScoreMap = new java.util.HashMap<>();
+        if (!roomIds.isEmpty()) {
+            List<PvpHistory> allHistories = pvpHistoryRepository.findByRoomIdIn(roomIds);
+            for (PvpHistory h : allHistories) {
+                opponentScoreMap
+                        .computeIfAbsent(h.getRoom().getId(), k -> new java.util.HashMap<>())
+                        .put(h.getUser().getId(), h.getScore());
+            }
+        }
+
+        // 6. 응답 생성
         List<MyRoomsResponse.HistoryItem> items = pageHistories.stream()
-                .map(this::toHistoryItem)
+                .map(history -> toHistoryItem(history, opponentScoreMap))
                 .toList();
 
         return MyRoomsResponse.builder()
@@ -697,14 +728,18 @@ public class PvpRoomService {
                 .build();
     }
 
-    private MyRoomsResponse.HistoryItem toHistoryItem(PvpHistory history) {
+    private MyRoomsResponse.HistoryItem toHistoryItem(
+            PvpHistory history,
+            java.util.Map<Long, java.util.Map<Long, Integer>> opponentScoreMap) {
         // 상대방 정보 조회
         User opponent = history.getOpponentUser();
         Long opponentUserId = opponent.getId();
-        Integer opponentScore = pvpHistoryRepository.findByRoomIdAndUserId(
-                        history.getRoom().getId(), opponentUserId)
-                .map(PvpHistory::getScore)
-                .orElse(null);
+        Long roomId = history.getRoom().getId();
+
+        // Map에서 상대방 점수 조회 (N+1 방지)
+        Integer opponentScore = opponentScoreMap
+                .getOrDefault(roomId, java.util.Collections.emptyMap())
+                .get(opponentUserId);
 
         return MyRoomsResponse.HistoryItem.builder()
                 .historyId(history.getId())
@@ -729,7 +764,8 @@ public class PvpRoomService {
                 .opponent(MyRoomsResponse.OpponentInfo.builder()
                         .id(opponent.getId())
                         .nickname(history.getOpponentNickname())
-                        .profileImageUrl(opponent.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                opponent.getProfileImageKey(), opponent.getProfileImageUrl()))
                         .level(opponent.getLevel())
                         .score(opponentScore)
                         .build())
@@ -799,13 +835,15 @@ public class PvpRoomService {
                 .host(RoomResponse.UserInfo.builder()
                         .id(host.getId())
                         .nickname(host.getNickname())
-                        .profileImageUrl(host.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                host.getProfileImageKey(), host.getProfileImageUrl()))
                         .level(host.getLevel())
                         .build())
                 .guest(guest != null ? RoomResponse.UserInfo.builder()
                         .id(guest.getId())
                         .nickname(guest.getNickname())
-                        .profileImageUrl(guest.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                guest.getProfileImageKey(), guest.getProfileImageUrl()))
                         .level(guest.getLevel())
                         .build() : null)
                 .createdAt(room.getCreatedAt())
@@ -833,13 +871,15 @@ public class PvpRoomService {
                 .host(RoomListResponse.UserInfo.builder()
                         .id(host.getId())
                         .nickname(host.getNickname())
-                        .profileImageUrl(host.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                host.getProfileImageKey(), host.getProfileImageUrl()))
                         .level(host.getLevel())
                         .build())
                 .guest(guest != null ? RoomListResponse.UserInfo.builder()
                         .id(guest.getId())
                         .nickname(guest.getNickname())
-                        .profileImageUrl(guest.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                guest.getProfileImageKey(), guest.getProfileImageUrl()))
                         .level(guest.getLevel())
                         .build() : null)
                 .createdAt(room.getCreatedAt())
