@@ -432,6 +432,7 @@ public class PvpRoomService {
         // 3. PROCESSING 상태 처리
         if (room.getStatus() == PvpRoomStatus.PROCESSING) {
             return RoomResultResponse.builder()
+                    .roomId(roomId)
                     .status(PvpRoomStatus.PROCESSING)
                     .message("AI 분석 중입니다.")
                     .build();

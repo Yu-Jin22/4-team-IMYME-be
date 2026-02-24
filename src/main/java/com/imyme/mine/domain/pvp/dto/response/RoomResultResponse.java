@@ -1,5 +1,6 @@
 package com.imyme.mine.domain.pvp.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.imyme.mine.domain.pvp.entity.PvpRoomStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,8 +14,10 @@ import java.time.LocalDateTime;
 @Getter
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class RoomResultResponse {
-    private RoomInfo room;
+    private Long roomId;               // PROCESSING 상태용
+    private RoomInfo room;             // FINISHED 상태용
     private CategoryInfo category;
     private KeywordInfo keyword;
     private PvpRoomStatus status;
