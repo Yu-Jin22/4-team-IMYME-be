@@ -688,14 +688,31 @@ public class PvpRoomService {
     }
 
     private RoomListResponse.RoomItem toRoomItem(PvpRoom room) {
+        User host = room.getHostUser();
+        User guest = room.getGuestUser();
+
         return RoomListResponse.RoomItem.builder()
-                .id(room.getId())
-                .categoryId(room.getCategory().getId())
-                .categoryName(room.getCategory().getName())
-                .roomName(room.getRoomName())
+                .room(RoomListResponse.RoomInfo.builder()
+                        .id(room.getId())
+                        .name(room.getRoomName())
+                        .build())
+                .category(RoomListResponse.CategoryInfo.builder()
+                        .id(room.getCategory().getId())
+                        .name(room.getCategory().getName())
+                        .build())
                 .status(room.getStatus())
-                .hostUserId(room.getHostUser().getId())
-                .hostNickname(room.getHostNickname())
+                .host(RoomListResponse.UserInfo.builder()
+                        .id(host.getId())
+                        .nickname(host.getNickname())
+                        .profileImageUrl(host.getProfileImageUrl())
+                        .level(host.getLevel())
+                        .build())
+                .guest(guest != null ? RoomListResponse.UserInfo.builder()
+                        .id(guest.getId())
+                        .nickname(guest.getNickname())
+                        .profileImageUrl(guest.getProfileImageUrl())
+                        .level(guest.getLevel())
+                        .build() : null)
                 .createdAt(room.getCreatedAt())
                 .build();
     }
