@@ -432,7 +432,10 @@ public class PvpRoomService {
         // 3. PROCESSING 상태 처리
         if (room.getStatus() == PvpRoomStatus.PROCESSING) {
             return RoomResultResponse.builder()
-                    .roomId(roomId)
+                    .room(RoomResultResponse.RoomInfo.builder()
+                            .id(room.getId())
+                            .name(room.getRoomName())
+                            .build())
                     .status(PvpRoomStatus.PROCESSING)
                     .message("AI 분석 중입니다.")
                     .build();
@@ -463,18 +466,29 @@ public class PvpRoomService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND));
 
         // 8. 응답 생성
+        User winner = room.getWinnerUser();
+
         return RoomResultResponse.builder()
-                .roomId(roomId)
-                .status(PvpRoomStatus.FINISHED)
+                .room(RoomResultResponse.RoomInfo.builder()
+                        .id(room.getId())
+                        .name(room.getRoomName())
+                        .build())
+                .category(RoomResultResponse.CategoryInfo.builder()
+                        .id(room.getCategory().getId())
+                        .name(room.getCategory().getName())
+                        .build())
                 .keyword(RoomResultResponse.KeywordInfo.builder()
                         .id(room.getKeyword().getId())
                         .name(room.getKeyword().getName())
                         .build())
+                .status(PvpRoomStatus.FINISHED)
                 .myResult(buildPlayerResult(myHistory, myFeedback, mySubmission, true))
                 .opponentResult(buildPlayerResult(opponentHistory, opponentFeedback, opponentSubmission, false))
-                .winner(room.getWinnerUser() != null ? RoomResultResponse.WinnerInfo.builder()
-                        .userId(room.getWinnerUser().getId())
-                        .nickname(room.getWinnerUser().getNickname())
+                .winner(winner != null ? RoomResultResponse.UserInfo.builder()
+                        .id(winner.getId())
+                        .nickname(winner.getNickname())
+                        .profileImageUrl(winner.getProfileImageUrl())
+                        .level(winner.getLevel())
                         .build() : null)
                 .finishedAt(room.getFinishedAt())
                 .build();
@@ -486,12 +500,18 @@ public class PvpRoomService {
             PvpSubmission submission,
             boolean includeHistoryInfo) {
 
+        User user = history.getUser();
+
         // FeedbackDetail 파싱
         RoomResultResponse.FeedbackDetail feedbackDetail = parseFeedbackJson(feedback.getPvpFeedbackJson());
 
         RoomResultResponse.PlayerResult.PlayerResultBuilder builder = RoomResultResponse.PlayerResult.builder()
-                .userId(history.getUser().getId())
-                .nickname(history.getUser().getNickname())
+                .user(RoomResultResponse.UserInfo.builder()
+                        .id(user.getId())
+                        .nickname(user.getNickname())
+                        .profileImageUrl(user.getProfileImageUrl())
+                        .level(user.getLevel())
+                        .build())
                 .score(feedback.getScore())
                 .audioUrl(submission.getAudioUrl())
                 .durationSeconds(submission.getDurationSeconds())
@@ -511,12 +531,20 @@ public class PvpRoomService {
     private RoomResultResponse.FeedbackDetail parseFeedbackJson(Object feedbackJson) {
         if (feedbackJson instanceof java.util.Map) {
             java.util.Map<String, Object> map = (java.util.Map<String, Object>) feedbackJson;
+
+            // keywords는 List<String>로 변환
+            java.util.List<String> keywords = null;
+            Object keywordsObj = map.get("keywords");
+            if (keywordsObj instanceof java.util.List) {
+                keywords = (java.util.List<String>) keywordsObj;
+            }
+
             return RoomResultResponse.FeedbackDetail.builder()
                     .summary((String) map.get("summary"))
-                    .keywords((String) map.get("keywords"))
+                    .keywords(keywords)
                     .facts((String) map.get("facts"))
                     .understanding((String) map.get("understanding"))
-                    .socraticFeedback((String) map.get("socraticFeedback"))
+                    .personalizedFeedback((String) map.get("personalizedFeedback"))
                     .build();
         }
         return null;
@@ -601,24 +629,41 @@ public class PvpRoomService {
     }
 
     private MyRoomsResponse.HistoryItem toHistoryItem(PvpHistory history) {
-        // 상대방 점수 조회 (같은 방의 다른 유저)
-        Long opponentUserId = history.getOpponentUser().getId();
+        // 상대방 정보 조회
+        User opponent = history.getOpponentUser();
+        Long opponentUserId = opponent.getId();
         Integer opponentScore = pvpHistoryRepository.findByRoomIdAndUserId(
                         history.getRoom().getId(), opponentUserId)
                 .map(PvpHistory::getScore)
                 .orElse(null);
 
         return MyRoomsResponse.HistoryItem.builder()
-                .id(history.getId())
-                .roomId(history.getRoom().getId())
-                .categoryName(history.getCategoryName())
-                .keywordName(history.getKeywordName())
+                .historyId(history.getId())
+                .room(MyRoomsResponse.RoomInfo.builder()
+                        .id(history.getRoom().getId())
+                        .name(history.getRoomName())
+                        .build())
+                .category(MyRoomsResponse.CategoryInfo.builder()
+                        .id(history.getCategory().getId())
+                        .name(history.getCategoryName())
+                        .build())
+                .keyword(MyRoomsResponse.KeywordInfo.builder()
+                        .id(history.getKeyword().getId())
+                        .name(history.getKeywordName())
+                        .build())
                 .myRole(history.getRole())
-                .myScore(history.getScore())
-                .myLevel(history.getLevel())
-                .opponentNickname(history.getOpponentNickname())
-                .opponentScore(opponentScore)
-                .isWinner(history.getIsWinner())
+                .myResult(MyRoomsResponse.MyResult.builder()
+                        .score(history.getScore())
+                        .level(history.getLevel())
+                        .isWinner(history.getIsWinner())
+                        .build())
+                .opponent(MyRoomsResponse.OpponentInfo.builder()
+                        .id(opponent.getId())
+                        .nickname(history.getOpponentNickname())
+                        .profileImageUrl(opponent.getProfileImageUrl())
+                        .level(opponent.getLevel())
+                        .score(opponentScore)
+                        .build())
                 .isHidden(history.getIsHidden())
                 .finishedAt(history.getFinishedAt())
                 .build();
@@ -654,6 +699,9 @@ public class PvpRoomService {
     // ===== 내부 변환 메서드 =====
 
     RoomResponse toRoomResponse(PvpRoom room, String message) {
+        User host = room.getHostUser();
+        User guest = room.getGuestUser();
+
         RoomResponse.KeywordInfo keywordInfo = null;
         if (room.getKeyword() != null) {
             keywordInfo = RoomResponse.KeywordInfo.builder()
@@ -669,16 +717,28 @@ public class PvpRoomService {
         }
 
         return RoomResponse.builder()
-                .id(room.getId())
-                .categoryId(room.getCategory().getId())
-                .categoryName(room.getCategory().getName())
-                .roomName(room.getRoomName())
+                .room(RoomResponse.RoomInfo.builder()
+                        .id(room.getId())
+                        .name(room.getRoomName())
+                        .build())
+                .category(RoomResponse.CategoryInfo.builder()
+                        .id(room.getCategory().getId())
+                        .name(room.getCategory().getName())
+                        .build())
                 .status(room.getStatus())
-                .hostUserId(room.getHostUser().getId())
-                .hostNickname(room.getHostNickname())
-                .guestUserId(room.getGuestUser() != null ? room.getGuestUser().getId() : null)
-                .guestNickname(room.getGuestNickname())
                 .keyword(keywordInfo)
+                .host(RoomResponse.UserInfo.builder()
+                        .id(host.getId())
+                        .nickname(host.getNickname())
+                        .profileImageUrl(host.getProfileImageUrl())
+                        .level(host.getLevel())
+                        .build())
+                .guest(guest != null ? RoomResponse.UserInfo.builder()
+                        .id(guest.getId())
+                        .nickname(guest.getNickname())
+                        .profileImageUrl(guest.getProfileImageUrl())
+                        .level(guest.getLevel())
+                        .build() : null)
                 .createdAt(room.getCreatedAt())
                 .matchedAt(room.getMatchedAt())
                 .startedAt(room.getStartedAt())
@@ -688,14 +748,31 @@ public class PvpRoomService {
     }
 
     private RoomListResponse.RoomItem toRoomItem(PvpRoom room) {
+        User host = room.getHostUser();
+        User guest = room.getGuestUser();
+
         return RoomListResponse.RoomItem.builder()
-                .id(room.getId())
-                .categoryId(room.getCategory().getId())
-                .categoryName(room.getCategory().getName())
-                .roomName(room.getRoomName())
+                .room(RoomListResponse.RoomInfo.builder()
+                        .id(room.getId())
+                        .name(room.getRoomName())
+                        .build())
+                .category(RoomListResponse.CategoryInfo.builder()
+                        .id(room.getCategory().getId())
+                        .name(room.getCategory().getName())
+                        .build())
                 .status(room.getStatus())
-                .hostUserId(room.getHostUser().getId())
-                .hostNickname(room.getHostNickname())
+                .host(RoomListResponse.UserInfo.builder()
+                        .id(host.getId())
+                        .nickname(host.getNickname())
+                        .profileImageUrl(host.getProfileImageUrl())
+                        .level(host.getLevel())
+                        .build())
+                .guest(guest != null ? RoomListResponse.UserInfo.builder()
+                        .id(guest.getId())
+                        .nickname(guest.getNickname())
+                        .profileImageUrl(guest.getProfileImageUrl())
+                        .level(guest.getLevel())
+                        .build() : null)
                 .createdAt(room.getCreatedAt())
                 .build();
     }
