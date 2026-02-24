@@ -22,14 +22,38 @@ public class RoomListResponse {
     @AllArgsConstructor
     @Builder
     public static class RoomItem {
-        private Long id;
-        private Long categoryId;
-        private String categoryName;
-        private String roomName;
+        private RoomInfo room;
+        private CategoryInfo category;
         private PvpRoomStatus status;
-        private Long hostUserId;
-        private String hostNickname;
+        private UserInfo host;
+        private UserInfo guest;
         private LocalDateTime createdAt;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class RoomInfo {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class CategoryInfo {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class UserInfo {
+        private Long id;
+        private String nickname;
+        private String profileImageUrl;
+        private Integer level;
     }
 
     @Getter
