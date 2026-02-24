@@ -14,14 +14,31 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class RoomResultResponse {
-    private Long roomId;
-    private PvpRoomStatus status;
+    private RoomInfo room;
+    private CategoryInfo category;
     private KeywordInfo keyword;
+    private PvpRoomStatus status;
     private PlayerResult myResult;
     private PlayerResult opponentResult;
-    private WinnerInfo winner;
+    private UserInfo winner;
     private LocalDateTime finishedAt;
     private String message;
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class RoomInfo {
+        private Long id;
+        private String name;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class CategoryInfo {
+        private Long id;
+        private String name;
+    }
 
     @Getter
     @AllArgsConstructor
@@ -37,13 +54,22 @@ public class RoomResultResponse {
     public static class PlayerResult {
         private Long historyId;
         private Boolean isHidden;
-        private Long userId;
-        private String nickname;
+        private UserInfo user;
         private Integer score;
         private String audioUrl;
         private Integer durationSeconds;
         private String sttText;
         private FeedbackDetail feedback;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
+    public static class UserInfo {
+        private Long id;
+        private String nickname;
+        private String profileImageUrl;
+        private Integer level;
     }
 
     @Getter
@@ -55,13 +81,5 @@ public class RoomResultResponse {
         private String facts;
         private String understanding;
         private String socraticFeedback;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    @Builder
-    public static class WinnerInfo {
-        private Long userId;
-        private String nickname;
     }
 }
