@@ -15,6 +15,7 @@ import com.imyme.mine.domain.pvp.repository.PvpRoomRepository;
 import com.imyme.mine.domain.pvp.repository.PvpSubmissionRepository;
 import com.imyme.mine.domain.storage.dto.PresignedUrlResponse;
 import com.imyme.mine.domain.storage.service.StorageService;
+import com.imyme.mine.domain.user.service.ProfileImageService;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,7 @@ public class PvpRoomService {
     private final PvpFeedbackRepository pvpFeedbackRepository;
     private final StorageService storageService;
     private final PvpAsyncService pvpAsyncService;
+    private final ProfileImageService profileImageService;
     // TODO v2: RabbitMQ Producer 주입
     // private final RabbitTemplate rabbitTemplate;
 
@@ -487,7 +489,8 @@ public class PvpRoomService {
                 .winner(winner != null ? RoomResultResponse.UserInfo.builder()
                         .id(winner.getId())
                         .nickname(winner.getNickname())
-                        .profileImageUrl(winner.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                winner.getProfileImageKey(), winner.getProfileImageUrl()))
                         .level(winner.getLevel())
                         .build() : null)
                 .finishedAt(room.getFinishedAt())
@@ -509,7 +512,8 @@ public class PvpRoomService {
                 .user(RoomResultResponse.UserInfo.builder()
                         .id(user.getId())
                         .nickname(user.getNickname())
-                        .profileImageUrl(user.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                user.getProfileImageKey(), user.getProfileImageUrl()))
                         .level(user.getLevel())
                         .build())
                 .score(feedback.getScore())
@@ -660,7 +664,8 @@ public class PvpRoomService {
                 .opponent(MyRoomsResponse.OpponentInfo.builder()
                         .id(opponent.getId())
                         .nickname(history.getOpponentNickname())
-                        .profileImageUrl(opponent.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                opponent.getProfileImageKey(), opponent.getProfileImageUrl()))
                         .level(opponent.getLevel())
                         .score(opponentScore)
                         .build())
@@ -730,13 +735,15 @@ public class PvpRoomService {
                 .host(RoomResponse.UserInfo.builder()
                         .id(host.getId())
                         .nickname(host.getNickname())
-                        .profileImageUrl(host.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                host.getProfileImageKey(), host.getProfileImageUrl()))
                         .level(host.getLevel())
                         .build())
                 .guest(guest != null ? RoomResponse.UserInfo.builder()
                         .id(guest.getId())
                         .nickname(guest.getNickname())
-                        .profileImageUrl(guest.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                guest.getProfileImageKey(), guest.getProfileImageUrl()))
                         .level(guest.getLevel())
                         .build() : null)
                 .createdAt(room.getCreatedAt())
@@ -764,13 +771,15 @@ public class PvpRoomService {
                 .host(RoomListResponse.UserInfo.builder()
                         .id(host.getId())
                         .nickname(host.getNickname())
-                        .profileImageUrl(host.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                host.getProfileImageKey(), host.getProfileImageUrl()))
                         .level(host.getLevel())
                         .build())
                 .guest(guest != null ? RoomListResponse.UserInfo.builder()
                         .id(guest.getId())
                         .nickname(guest.getNickname())
-                        .profileImageUrl(guest.getProfileImageUrl())
+                        .profileImageUrl(profileImageService.resolveProfileImageUrl(
+                                guest.getProfileImageKey(), guest.getProfileImageUrl()))
                         .level(guest.getLevel())
                         .build() : null)
                 .createdAt(room.getCreatedAt())
