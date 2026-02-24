@@ -4,6 +4,8 @@ import com.imyme.mine.domain.auth.entity.User;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
@@ -19,6 +21,8 @@ import java.time.LocalDateTime;
         indexes = {
                 @Index(name = "idx_pvp_feedbacks_room", columnList = "room_id, deleted_at")
         })
+@SQLRestriction("deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE pvp_feedbacks SET deleted_at = NOW() WHERE id = ?")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PROTECTED)
