@@ -16,8 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RoomResultResponse {
-    private Long roomId;               // PROCESSING 상태용
-    private RoomInfo room;             // FINISHED 상태용
+    private RoomInfo room;
     private CategoryInfo category;
     private KeywordInfo keyword;
     private PvpRoomStatus status;
@@ -80,9 +79,9 @@ public class RoomResultResponse {
     @Builder
     public static class FeedbackDetail {
         private String summary;
-        private String keywords;
+        private java.util.List<String> keywords;
         private String facts;
         private String understanding;
-        private String socraticFeedback;
+        private String personalizedFeedback;
     }
 }

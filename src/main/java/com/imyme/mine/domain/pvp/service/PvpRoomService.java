@@ -432,7 +432,10 @@ public class PvpRoomService {
         // 3. PROCESSING 상태 처리
         if (room.getStatus() == PvpRoomStatus.PROCESSING) {
             return RoomResultResponse.builder()
-                    .roomId(roomId)
+                    .room(RoomResultResponse.RoomInfo.builder()
+                            .id(room.getId())
+                            .name(room.getRoomName())
+                            .build())
                     .status(PvpRoomStatus.PROCESSING)
                     .message("AI 분석 중입니다.")
                     .build();
@@ -528,12 +531,20 @@ public class PvpRoomService {
     private RoomResultResponse.FeedbackDetail parseFeedbackJson(Object feedbackJson) {
         if (feedbackJson instanceof java.util.Map) {
             java.util.Map<String, Object> map = (java.util.Map<String, Object>) feedbackJson;
+
+            // keywords는 List<String>로 변환
+            java.util.List<String> keywords = null;
+            Object keywordsObj = map.get("keywords");
+            if (keywordsObj instanceof java.util.List) {
+                keywords = (java.util.List<String>) keywordsObj;
+            }
+
             return RoomResultResponse.FeedbackDetail.builder()
                     .summary((String) map.get("summary"))
-                    .keywords((String) map.get("keywords"))
+                    .keywords(keywords)
                     .facts((String) map.get("facts"))
                     .understanding((String) map.get("understanding"))
-                    .socraticFeedback((String) map.get("socraticFeedback"))
+                    .personalizedFeedback((String) map.get("personalizedFeedback"))
                     .build();
         }
         return null;
