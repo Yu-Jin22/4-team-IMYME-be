@@ -22,7 +22,7 @@ public class CategoryService {
      * - sync=true: Cache Stampede 방지 (TTL 만료 시 동시 요청 폭주 방지)
      * - key: isActive 값별로 개별 캐싱 (null/true/false)
      */
-    @Cacheable(value = "categories", key = "#isActive", sync = true)
+    @Cacheable(value = "categories", key = "#isActive != null ? #isActive : 'all'", sync = true)
     public List<CategoryResponse> getCategories(Boolean isActive) {
         if (isActive == null) {
             return categoryRepository.findAllByOrderByDisplayOrderAsc().stream()
