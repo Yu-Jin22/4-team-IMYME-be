@@ -409,11 +409,12 @@ public class PvpRoomService {
 
             // ANSWER_SUBMITTED 브로드캐스트 (커밋 후 Redis Pub/Sub)
             final String nickname = submission.getUser().getNickname();
+            final String role = submission.getRoom().isHost(userId) ? "HOST" : "GUEST";
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
                     messagePublisher.publish(PvpChannels.getRoomChannel(currentRoomId),
-                            PvpMessage.answerSubmitted(currentRoomId, userId, nickname));
+                            PvpMessage.answerSubmitted(currentRoomId, userId, nickname, role));
                 }
             });
 

@@ -64,6 +64,7 @@ public class PvpRedisSubscriber implements MessageListener {
                 RoomJoinedMessage joined = RoomJoinedMessage.builder()
                         .userId(data != null ? toLong(data.get("userId")) : null)
                         .nickname(data != null ? (String) data.get("nickname") : null)
+                        .role(data != null ? (String) data.get("role") : null)
                         .message(pvpMessage.getMessage())
                         .build();
                 yield PvpWebSocketMessage.of(MessageType.ROOM_JOINED, roomId, joined);
@@ -71,6 +72,7 @@ public class PvpRedisSubscriber implements MessageListener {
             case GUEST_LEFT -> {
                 RoomJoinedMessage left = RoomJoinedMessage.builder()
                         .userId(data != null ? toLong(data.get("userId")) : null)
+                        .role(data != null ? (String) data.get("role") : null)
                         .message(pvpMessage.getMessage())
                         .build();
                 yield PvpWebSocketMessage.of(MessageType.ROOM_LEFT, roomId, left);
@@ -118,6 +120,7 @@ public class PvpRedisSubscriber implements MessageListener {
                 AnswerSubmittedMessage submitted = AnswerSubmittedMessage.builder()
                         .userId(data != null ? toLong(data.get("userId")) : null)
                         .nickname(data != null ? (String) data.get("nickname") : null)
+                        .role(data != null ? (String) data.get("role") : null)
                         .message(pvpMessage.getMessage())
                         .build();
                 yield PvpWebSocketMessage.of(MessageType.ANSWER_SUBMITTED, roomId, submitted);
