@@ -1,9 +1,7 @@
 package com.imyme.mine.global.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -83,15 +81,12 @@ public class RedisConfig {
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        // Jackson ObjectMapper 설정
+        // Jackson ObjectMapper 설정 (Record 지원)
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.activateDefaultTyping(
-            LaissezFaireSubTypeValidator.instance,
-            ObjectMapper.DefaultTyping.NON_FINAL,
-            JsonTypeInfo.As.PROPERTY
-        );
+        // activateDefaultTyping 제거: Record와 호환 문제 발생
+        // GenericJackson2JsonRedisSerializer가 기본적으로 타입 정보를 포함함
 
         GenericJackson2JsonRedisSerializer serializer =
             new GenericJackson2JsonRedisSerializer(objectMapper);
