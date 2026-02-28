@@ -194,6 +194,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEV_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          sleep 10
           ssh-keyscan -H ${{ secrets.DEV_SERVER_HOST }} >> ~/.ssh/known_hosts
 
       # 2️⃣ 아티팩트 다운로드
