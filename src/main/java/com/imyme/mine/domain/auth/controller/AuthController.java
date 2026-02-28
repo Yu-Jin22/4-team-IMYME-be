@@ -2,6 +2,7 @@ package com.imyme.mine.domain.auth.controller;
 
 import com.imyme.mine.domain.auth.dto.*;
 import com.imyme.mine.domain.auth.entity.OAuthProviderType;
+import com.imyme.mine.domain.auth.service.KakaoRedirectUriResolver;
 import com.imyme.mine.domain.auth.service.LogoutService;
 import com.imyme.mine.domain.auth.service.OAuthService;
 import com.imyme.mine.domain.auth.service.TokenRefreshService;
@@ -22,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "2. Auth", description = "OAuth 로그인, 토큰 관리, 로그아웃 API")
+@Tag(name = "02. Auth", description = "OAuth 로그인, 토큰 관리, 로그아웃 API")
 @Slf4j
 @RestController
 @RequestMapping("/auth")
@@ -32,7 +33,41 @@ public class AuthController {
     private final OAuthService oauthService;
     private final TokenRefreshService tokenRefreshService;
     private final LogoutService logoutService;
+    private final KakaoRedirectUriResolver kakaoRedirectUriResolver;
 
+    @Operation(
+        summary = "카카오 OAuth Redirect URI 조회",
+        description = "클라이언트의 Origin 헤더를 기반으로 환경(Local/Dev/Prod)에 맞는 Redirect URI를 반환합니다."
+    )
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Redirect URI 조회 성공"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "등록되지 않은 Origin - INVALID_ORIGIN",
+            content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "500",
+            description = "알 수 없는 환경 - INVALID_ENVIRONMENT",
+            content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))
+        )
+    })
+    @GetMapping("/kakao/redirect-uri")
+    public ApiResponse<KakaoRedirectUriResponse> getKakaoRedirectUri(
+        @RequestHeader(value = "Origin", required = false) String origin
+    ) {
+        log.info("Kakao Redirect URI 요청 - Origin: {}", origin);
+
+        String redirectUri = kakaoRedirectUriResolver.resolveRedirectUri(origin);
+
+        return ApiResponse.success(
+            new KakaoRedirectUriResponse(redirectUri),
+            "Redirect URI 조회 성공"
+        );
+    }
 
     @Operation(
         summary = "OAuth 로그인",

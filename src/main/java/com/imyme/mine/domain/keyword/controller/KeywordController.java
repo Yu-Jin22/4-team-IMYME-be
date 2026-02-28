@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "6. Keyword", description = "카테고리별 키워드 전체 조회 API")
+@Tag(name = "06. Keyword", description = "카테고리별 키워드 전체 조회 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/keywords")
