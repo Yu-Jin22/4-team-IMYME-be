@@ -82,8 +82,6 @@ public class RoomResultResponse {
         private java.util.List<String> keywords;
         private String facts;
         private String understanding;
-
-        @com.fasterxml.jackson.annotation.JsonProperty("personalized_feedback")
         private String personalizedFeedback;
     }
 }
