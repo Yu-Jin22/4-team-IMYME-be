@@ -16,14 +16,15 @@ import com.imyme.mine.domain.card.entity.CardFeedback;
 import com.imyme.mine.domain.card.repository.CardAttemptRepository;
 import com.imyme.mine.domain.card.repository.CardFeedbackRepository;
 import com.imyme.mine.domain.card.repository.CardRepository;
-import com.imyme.mine.domain.knowledge.entity.KnowledgeBase;
 import com.imyme.mine.domain.knowledge.repository.KnowledgeBaseRepository;
+import com.imyme.mine.domain.knowledge.service.KnowledgeBaseService;
 import com.imyme.mine.global.config.AttemptProperties;
 import com.imyme.mine.global.config.S3Properties;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,7 @@ public class AttemptService {
     private final CardAttemptRepository cardAttemptRepository;
     private final CardFeedbackRepository cardFeedbackRepository;
     private final KnowledgeBaseRepository knowledgeBaseRepository;
+    private final KnowledgeBaseService knowledgeBaseService;
     private final AiServerClient aiServerClient;
     private final ApplicationEventPublisher eventPublisher;
     private final S3Presigner s3Presigner;
@@ -88,6 +90,14 @@ public class AttemptService {
         return AttemptCreateResponse.of(savedAttempt, expiresAt);
     }
 
+    /**
+     * Solo 시도 상세 조회 (캐싱 적용)
+     * - TTL: 7일 (RedisConfig에서 설정)
+     * - 조건부 캐싱: COMPLETED 상태일 때만 캐싱 (Immutable 데이터)
+     * - PROCESSING/FAILED는 캐싱하지 않음 (폴링 API)
+     */
+    @Cacheable(value = "ai:feedback:solo", key = "#attemptId",
+               condition = "#result != null && #result.status() == 'COMPLETED'")
     @Transactional(readOnly = true)
     public AttemptDetailResponse getAttemptDetail(Long userId, Long cardId, Long attemptId) {
         log.debug("시도 상세 조회 - userId: {}, cardId: {}, attemptId: {}", userId, cardId, attemptId);
@@ -198,7 +208,7 @@ public class AttemptService {
     }
 
     private CardAttempt findAttemptWithValidation(Long userId, Long cardId, Long attemptId) {
-        CardAttempt attempt = cardAttemptRepository.findById(attemptId)
+        CardAttempt attempt = cardAttemptRepository.findByIdWithCardAndUser(attemptId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ATTEMPT_NOT_FOUND));
 
         // 카드 일치 여부 및 소유권 확인
@@ -214,17 +224,14 @@ public class AttemptService {
      * - Card와 CardAttempt의 일치 여부 확인
      */
     private ValidatedAttempt validateAttemptOwnership(Long userId, Long cardId, Long attemptId) {
-        Card card = cardRepository.findByIdAndUserId(cardId, userId)
-            .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
-
-        CardAttempt attempt = cardAttemptRepository.findById(attemptId)
+        CardAttempt attempt = cardAttemptRepository.findByIdWithCardAndUser(attemptId)
             .orElseThrow(() -> new BusinessException(ErrorCode.ATTEMPT_NOT_FOUND));
 
-        if (!attempt.getCard().getId().equals(card.getId())) {
+        if (!attempt.getCard().getId().equals(cardId) || !attempt.getCard().getUser().getId().equals(userId)) {
             throw new BusinessException(ErrorCode.INVALID_CARD_ATTEMPT_MISMATCH);
         }
 
-        return new ValidatedAttempt(card, attempt);
+        return new ValidatedAttempt(attempt.getCard(), attempt);
     }
 
     private Short calculateNextAttemptNo(Long cardId) {
@@ -285,11 +292,10 @@ public class AttemptService {
         defaults.put("maxScore", 100);
         defaults.put("keywords", List.of(card.getKeyword().getName()));
 
-        List<String> knowledgeContents = knowledgeBaseRepository.findByKeywordId(card.getKeyword().getId())
-            .stream()
-            .filter(KnowledgeBase::getIsActive)
-            .map(KnowledgeBase::getContent)
-            .toList();
+        // KnowledgeBaseService 사용 (캐싱 적용)
+        List<String> knowledgeContents = knowledgeBaseService.getModelAnswersByKeyword(
+            card.getKeyword().getId()
+        );
         if (!knowledgeContents.isEmpty()) {
             defaults.put("knowledgeBase", knowledgeContents);
         }

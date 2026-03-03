@@ -1,17 +1,18 @@
-name: Backend CI/CD v2
+name: Backend CI/CD main mvp2
 
 on:
   pull_request:
     branches:
       - main
+#      - infra/cicd
 
   push:
     branches:
 #      - infra/cicd
       - main
+      # - dev   # dev merge 결과 → CD
 
 permissions:
-  actions: write
   contents: read
 
 concurrency:
@@ -22,36 +23,45 @@ jobs:
 
   # 1) CI
   ci:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'push' # pr 및 push 일때만 실행
+    runs-on: ubuntu-latest # 워크플로우 실행 러너 지정
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       # 1. Checkout
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      # 2. JDK 21
-      - name: Set up JDK 21
+      - name: Set up JDK 21 (with Gradle cache)
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: "21"
-          distribution: "temurin"
-
-      # 3. Gradle Cache
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      # 4. gradlew 권한
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
+          cache: gradle
 
       # ========================================
       # 5. 정적 분석 (Static Analysis)
@@ -69,43 +79,22 @@ jobs:
       - name: Run Checkstyle
         run: ./gradlew checkstyleMain
 
-      # 6. 빌드
-      - name: Build
-        run: ./gradlew build -x test
+      # 7. 테스트 + 빌드
+      - name: Build and Test
+        run: ./gradlew build
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          SPRING_REDIS_HOST: localhost
+          SPRING_REDIS_PORT: 6379
 
-       # 7. 테스트
-      - name: Run Tests
-        run: ./gradlew test
-
-      # 8.1 이전 아티팩트 삭제
-      - name: Delete old artifacts
-        if: github.ref == 'refs/heads/main' || github.event.pull_request.merged == true
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const artifacts = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-            for (const artifact of artifacts.data.artifacts) {
-              if (artifact.name === 'backend-prod-latest') {
-                await github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: artifact.id,
-                });
-              }
-            }
-
-      # 8.2 아티팩트 업로드
-      - name: Upload artifact
-        if: github.ref == 'refs/heads/main' || github.event.pull_request.merged == true
+      # 8. JAR artifact 업로드 (CD에서 재사용)
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: backend-prod-latest
+          name: app-jar
           path: build/libs/*.jar
-          retention-days: 15
-          overwrite: true
+          retention-days: 1
+
 
   ci-notify-success:
     needs: ci
@@ -138,141 +127,141 @@ jobs:
   # 2) CD
   cd:
     needs: ci
+    # if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
 
     runs-on: ubuntu-latest
 
+    # test ec2 public ip : 15.164.94.102
     steps:
-      # 0️⃣ Runner IP 획득 및 보안 그룹 추가
-      - name: Get Runner IP
-        id: ip
-        run: echo "ipv4=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+      # CD에서도 Dockerfile/배포 리소스를 사용하므로 소스 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Add IP to Security Group
-        run: |
-          aws ec2 authorize-security-group-ingress \
-            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr "${{ steps.ip.outputs.ipv4 }}/32"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ap-northeast-2
-
-      # 1️⃣ SSH 세팅
-      - name: Set up SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEV_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts
-
-      # 2️⃣ 아티팩트 다운로드
-      - name: Download backend artifact
+      # CI에서 빌드한 JAR 다운로드
+      - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
-          name: backend-prod-latest
-          path: ./build/libs
+          name: app-jar
+          path: build/libs
 
-      # 3️⃣ 서버 전송
-      - name: Copy artifact to prod server
+      # AWS API 호출(ECR push, ECS update)을 위한 자격 증명 설정
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      # ECR 로그인 후 docker push 가능 상태로 전환
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Buildx 사용 + GHA 캐시로 이미지 빌드 속도 개선
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 커밋 SHA 태그로 이미지를 빌드/푸시 (불변 태그 전략)
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/arm64
+          tags: |
+            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:${{ github.sha }}
+            219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:prod-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ASG 인스턴스 대상 SSM 배포 (docker compose)
+      - name: Deploy with SSM (docker compose)
         run: |
-                scp -i ~/.ssh/id_rsa ./build/libs/*.jar \
-                ubuntu@${{ secrets.PROD_SERVER_HOST }}:/home/ubuntu/mine/backend
+          set -euo pipefail
 
-      # 4️⃣ 배포 (release / current 방식)
-      - name: Deploy to Prod Server
-        run: |
-          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.PROD_SERVER_HOST }} 'bash -s' <<'EOF'
-          set -e
+          IMAGE_URI="219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:prod-latest"
 
-          APP_DIR=/home/ubuntu/mine/backend
-          RELEASES_DIR=$APP_DIR/releases
-          SHARED_DIR=$APP_DIR/shared
-          RELEASE_ID=$(date +%Y%m%d%H%M%S)
+          cat > /tmp/ssm-params.json << 'ENDJSON'
+          {
+            "commands": [
+              "set -eu",
+              "cd /home/ubuntu",
+              "aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin 219268921033.dkr.ecr.ap-northeast-2.amazonaws.com",
+              "> /home/ubuntu/.env",
+              "echo '# ------------- COMMON --------------' >> /home/ubuntu/.env",
+              "aws ssm get-parameters-by-path --path '/MINE/MVP1/BE/ENV/COMMON' --with-decryption --query 'Parameters[*].[Name,Value]' --output text --region ap-northeast-2 | while IFS=$(printf '\\t') read -r name value; do key=$(basename \"$name\"); echo \"$key=${value:-}\" >> /home/ubuntu/.env; done",
+              "echo '' >> /home/ubuntu/.env",
+              "echo '# ------------- PROD --------------' >> /home/ubuntu/.env",
+              "aws ssm get-parameters-by-path --path '/MINE/MVP1/BE/ENV/PROD' --with-decryption --query 'Parameters[*].[Name,Value]' --output text --region ap-northeast-2 | while IFS=$(printf '\\t') read -r name value; do key=$(basename \"$name\"); echo \"$key=${value:-}\" >> /home/ubuntu/.env; done",
+              "IMAGE_URI=219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:prod-latest",
+              "docker pull $IMAGE_URI",
+              "docker compose up -d",
+              "docker image prune -f"
+            ]
+          }
+          ENDJSON
 
-          CURRENT_LINK=$APP_DIR/current
-          RELEASE_DIR=$RELEASES_DIR/$RELEASE_ID
-          PID_FILE=$SHARED_DIR/backend.pid
-          LOG_DIR=$SHARED_DIR/logs
-          LOG_FILE=$LOG_DIR/backend.log
-          ENV_FILE=$SHARED_DIR/.env
+          COMMAND_ID=$(aws ssm send-command \
+            --document-name "AWS-RunShellScript" \
+            --targets "Key=tag:aws:autoscaling:groupName,Values=mine_mvp1_be_asg-prod" \
+            --comment "backend main deploy (${GITHUB_SHA})" \
+            --parameters file:///tmp/ssm-params.json \
+            --region ap-northeast-2 \
+            --query "Command.CommandId" \
+            --output text)
 
-          mkdir -p "$RELEASE_DIR" "$LOG_DIR"
+          echo "SSM Command ID: ${COMMAND_ID}"
 
-          # 1. 새 release에 jar 이동 - $APP_DIR에서 최신의 jar파일 찾아서 이동 시킴
-          JAR_PATH=$(ls -1t "$APP_DIR"/*.jar | head -n 1)
-          mv "$JAR_PATH" "$RELEASE_DIR/backend.jar"
+          for i in {1..60}; do
+            STATUS=$(aws ssm list-commands \
+              --command-id "${COMMAND_ID}" \
+              --region ap-northeast-2 \
+              --query "Commands[0].Status" \
+              --output text)
+            echo "SSM status: ${STATUS}"
 
-          # 2. current 심볼릭 링크 교체
-          ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
-
-          # 3. 기존 프로세스 종료 (pid 기준)
-          if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-            kill "$(cat "$PID_FILE")" || true
-            sleep 2
-          fi
-
-          # env 파일 변수 주입
-          set -a
-          . "$ENV_FILE"
-          set +a
-
-          # nohup 실행 (spring.config.location 제거)
-          nohup java -jar "$CURRENT_LINK/backend.jar" \
-                --spring.profiles.active=prod \
-                >> "$LOG_FILE" 2>&1 </dev/null &
-
-
-          echo $! > "$PID_FILE"
-
-          # 4. Health Check
-          echo "🔍 Health check"
-          for i in {1..10}; do
-            if curl -sf http://127.0.0.1:8080/health > /dev/null; then
-              echo "✅ Health check passed"
+            if [ "${STATUS}" = "Success" ]; then
               break
             fi
-            echo "⏳ Waiting for backend..."
-            sleep 3
+
+            if [ "${STATUS}" = "Failed" ] || [ "${STATUS}" = "Cancelled" ] || [ "${STATUS}" = "TimedOut" ] || [ "${STATUS}" = "Cancelling" ]; then
+              aws ssm list-command-invocations \
+                --command-id "${COMMAND_ID}" \
+                --details \
+                --region ap-northeast-2 \
+                --output json
+              exit 1
+            fi
+
+            sleep 10
           done
 
-          if ! curl -sf http://127.0.0.1:8080/health > /dev/null; then
-            echo "❌ Health check failed"
-            cat "$LOG_FILE"
+          if [ "${STATUS}" != "Success" ]; then
+            echo "SSM deploy timeout"
+            aws ssm list-command-invocations \
+              --command-id "${COMMAND_ID}" \
+              --details \
+              --region ap-northeast-2 \
+              --output json
             exit 1
           fi
 
-          ls -1dt "$RELEASES_DIR"/* | tail -n +4 | xargs -r rm -rf
-
-
-          exit 0
-          EOF
       # 5️⃣ 배포 후 스모크 테스트
       - name: Post-deploy Smoke Test
         run: |
-            set -e
-            # Nginx가 물려있는 엔드포인트로 헬스체크
-            curl -fsS "${{ secrets.PROD_BASE_URL }}/server/health" >/dev/null
-            # 카테고리 리스트업
-            curl -fsS "${{ secrets.PROD_BASE_URL }}/server/categories" >/dev/null
-
-
-      # 5️⃣ 보안 그룹에서 IP 제거 (항상 실행)
-      - name: Remove IP from Security Group
-        if: always()
-        run: |
-          aws ec2 revoke-security-group-ingress \
-            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr "${{ steps.ip.outputs.ipv4 }}/32"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ap-northeast-2
+            BASE_URL="${{ secrets.PROD_BASE_URL }}"
+            for i in $(seq 1 12); do
+              echo "Attempt $i/12..."
+              if curl -fsS "$BASE_URL/server/health" >/dev/null 2>&1; then
+                echo "Health check passed"
+                exit 0
+              fi
+              sleep 10
+            done
+            echo "Health check failed after 120s"
+            exit 1
 
   cd-notify-success:
     needs: cd

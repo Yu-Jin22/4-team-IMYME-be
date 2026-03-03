@@ -22,11 +22,14 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "Refresh Token이 만료되었습니다. 다시 로그인해주세요."),
     SESSION_EXPIRED(HttpStatus.UNAUTHORIZED, "세션이 만료되었거나 로그아웃되었습니다. 다시 로그인해주세요."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+    NOT_PARTICIPANT(HttpStatus.FORBIDDEN, "방 참여자가 아닙니다."),
     ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "관리자 권한이 필요합니다."),
 
     // ========== OAuth (400, 500) ==========
     INVALID_OAUTH_CODE(HttpStatus.BAD_REQUEST, "유효하지 않은 OAuth 인증 코드입니다."),
     INVALID_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 OAuth 제공자입니다."),
+    INVALID_ORIGIN(HttpStatus.BAD_REQUEST, "등록되지 않은 Origin입니다."),
+    INVALID_ENVIRONMENT(HttpStatus.INTERNAL_SERVER_ERROR, "알 수 없는 환경입니다."),
     OAUTH_PROVIDER_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "OAuth 제공자 서버에 일시적인 문제가 발생했습니다."),
     NICKNAME_GENERATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "닉네임 생성에 실패했습니다. 잠시 후 다시 시도해주세요."),
     SESSION_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "세션 생성에 실패했습니다. 다시 로그인해주세요."),
@@ -42,6 +45,7 @@ public enum ErrorCode {
     DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "기기 정보를 찾을 수 없습니다."),
     SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "세션을 찾을 수 없습니다."),
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "PvP 방을 찾을 수 없습니다."),
+    SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "제출 정보를 찾을 수 없습니다."),
     CHALLENGE_NOT_FOUND(HttpStatus.NOT_FOUND, "챌린지를 찾을 수 없습니다."),
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "알림을 찾을 수 없습니다."),
 
@@ -50,6 +54,7 @@ public enum ErrorCode {
     INVALID_STATUS(HttpStatus.BAD_REQUEST, "유효하지 않은 상태입니다."),
     INVALID_AUDIO_URL(HttpStatus.BAD_REQUEST, "유효하지 않은 오디오 URL입니다."),
     INVALID_CARD_ATTEMPT_MISMATCH(HttpStatus.BAD_REQUEST, "카드와 시도 ID가 일치하지 않습니다."),
+    INVALID_CURSOR(HttpStatus.BAD_REQUEST, "유효하지 않은 커서입니다."),
     INVALID_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 타입입니다."),
     INVALID_AGENT_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 Agent Type입니다."),
     INVALID_PLATFORM_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 Platform Type입니다."),
@@ -64,7 +69,15 @@ public enum ErrorCode {
     CANNOT_DELETE_UPLOADED(HttpStatus.CONFLICT, "AI 분석 대기 중인 시도는 삭제할 수 없습니다."),
     ROOM_FULL(HttpStatus.CONFLICT, "방이 가득 찼습니다."),
     ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여한 방입니다."),
+    DUPLICATE_ROOM(HttpStatus.CONFLICT, "이미 생성한 대기 중인 방이 있습니다."),
+    ROOM_ALREADY_MATCHED(HttpStatus.CONFLICT, "이미 다른 사용자가 입장했습니다."),
+    CANNOT_JOIN_OWN_ROOM(HttpStatus.BAD_REQUEST, "본인이 만든 방에는 입장할 수 없습니다."),
+    ROOM_CANNOT_BE_DELETED(HttpStatus.FORBIDDEN, "게스트 입장 후에는 방을 삭제할 수 없습니다."),
+    GAME_ALREADY_STARTED(HttpStatus.FORBIDDEN, "게임이 시작되어 나갈 수 없습니다."),
     MAX_ATTEMPTS_EXCEEDED(HttpStatus.CONFLICT, "최대 시도 횟수(5회)를 초과했습니다."),
+    ALREADY_SUBMITTED(HttpStatus.CONFLICT, "이미 녹음을 제출했습니다."),
+    FILE_TOO_LARGE(HttpStatus.BAD_REQUEST, "파일 크기가 너무 큽니다. (최대 100MB)"),
+    INVALID_ROOM_STATUS(HttpStatus.FORBIDDEN, "현재 방 상태에서는 이 작업을 수행할 수 없습니다."),
 
     // ========== 검증 실패 (400, 422) ==========
     VALIDATION_FAILED(HttpStatus.UNPROCESSABLE_ENTITY, "입력값 검증에 실패했습니다."),

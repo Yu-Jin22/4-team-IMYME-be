@@ -45,6 +45,9 @@ out/
 logs/
 *.log
 
+# WebSocket test pages (development only)
+src/main/resources/static/websocket-test.html
+
 # Environment variables
 /src/main/resources/.env
 .env
@@ -57,3 +60,31 @@ CLAUDE.md
 
 # AGENTS.md
 AGENTS.md
+
+# Claude Code CLI
+.claude/
+
+# k6 test results
+k6-tests/results.json
+k6-tests/*.json
+/monitoring/HOW-TO-RUN.md
+/monitoring/CHEATSHEET.md
+/monitoring/METRICS-GUIDE.md
+/monitoring/QUICKSTART.md
+/k6-tests/README.md
+/monitoring/README.md
+
+# Redis persistence files
+dump.rdb
+appendonly.aof
+*.rdb
+*.aof
+
+# Docker volumes (로컬에서 생성되는 볼륨 데이터)
+# docker-compose.yml에서 생성되는 볼륨은 무시하지 않음 (외부 관리)
+
+# 개발 가이드 문서 (선택적 - 팀 정책에 따라)
+README-*.md
+!README.md
+
+/docs

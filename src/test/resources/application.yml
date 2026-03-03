@@ -32,6 +32,21 @@ spring:
     flyway:
         enabled: false
 
+    # RabbitMQ 설정 (테스트용 - 임베디드 사용 또는 비활성화)
+    # 실제 RabbitMQ가 필요한 통합 테스트에서는 Testcontainers 권장
+    rabbitmq:
+        host: localhost
+        port: 5672
+        username: guest
+        password: guest
+        listener:
+            simple:
+                acknowledge-mode: manual
+                prefetch: 1
+                missing-queues-fatal: false  # 큐 없어도 테스트 실패 방지
+                retry:
+                    enabled: false  # 테스트에서는 재시도 비활성화
+
     # OAuth 설정 (테스트용 가짜값)
     security:
         oauth2:
@@ -66,6 +81,22 @@ cloud:
             static: ap-northeast-2
         s3:
             bucket: test-bucket
+
+# ==================================================
+# Redis 설정 (테스트용 - GitHub Actions 서비스 컨테이너)
+# ==================================================
+    data:
+        redis:
+            host: localhost
+            port: 6379
+            password:
+            lettuce:
+                pool:
+                    max-active: 10
+                    max-idle: 5
+                    min-idle: 2
+                    max-wait: 3000ms
+            timeout: 3000ms
 
 # ==================================================
 # AI 서버 설정 (테스트용 가짜값)
@@ -108,6 +139,43 @@ cors:
 # ==================================================
 swagger:
     dev-server-url: http://localhost:8080
+
+# ==================================================
+# OAuth Kakao 동적 Redirect URI 설정 (테스트용)
+# ==================================================
+oauth:
+    kakao:
+        redirect-uris:
+            local: http://localhost:3000/auth/callback/kakao
+            dev: http://localhost:3000/auth/callback/kakao
+            prod: http://localhost:3000/auth/callback/kakao
+        origins:
+            local: http://localhost:3000
+            dev: http://localhost:3000
+            prod: http://localhost:3000
+
+# ==================================================
+# Attempt/Profile 설정 (테스트용)
+# ==================================================
+attempt:
+    upload-expiration-minutes: 10
+    presigned-url-expiration-hours: 1
+
+profile-image:
+    presigned-url-expiration-minutes: 5
+    get-url-expiration-hours: 1
+
+# ==================================================
+# Sentry 설정 (테스트용 더미값)
+# ==================================================
+sentry:
+    dsn: https://test@test.ingest.sentry.io/1234567
+    environment: test
+    traces-sample-rate: 0.0
+    send-default-pii: false
+    logging:
+        minimum-event-level: error
+        minimum-breadcrumb-level: info
 
 # ==================================================
 # 로그 설정 (테스트용 - 간소화)
