@@ -45,6 +45,7 @@ public class PvpMqConsumerService {
     private final UserRepository userRepository;
     private final RabbitMQMessagePublisher rabbitMQMessagePublisher;
     private final MessagePublisher messagePublisher;
+    private final com.imyme.mine.domain.user.service.UserService userService;
 
     /**
      * STT Response 처리
@@ -337,6 +338,13 @@ public class PvpMqConsumerService {
         User hostUser = room.getHostUser();
         User guestUser = room.getGuestUser();
         User winnerUser = room.getWinnerUser();
+
+        // 승자 winCount 증가 + 캐시 무효화
+        if (winnerUser != null) {
+            winnerUser.incrementWinCount();
+            userRepository.save(winnerUser);
+            userService.evictProfileCache(winnerUser.getId());
+        }
 
         // 호스트 히스토리
         if (hostUser != null) {
