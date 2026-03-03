@@ -84,6 +84,9 @@ public class UserService {
      * - 수정 후 캐시 자동 삭제
      */
     @CacheEvict(value = "userProfile", key = "#userId")
+    public void evictProfileCache(Long userId) {}
+
+    @CacheEvict(value = "userProfile", key = "#userId")
     @Transactional
     public UserProfileResponse updateProfile(Long userId, UpdateProfileRequest request) {
         User user = userRepository.findById(userId)
