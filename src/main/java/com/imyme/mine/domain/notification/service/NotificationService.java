@@ -1,0 +1,97 @@
+package com.imyme.mine.domain.notification.service;
+
+import com.imyme.mine.domain.notification.dto.NotificationListResponse;
+import com.imyme.mine.domain.notification.entity.Notification;
+import com.imyme.mine.domain.notification.entity.NotificationType;
+import com.imyme.mine.domain.notification.repository.NotificationRepository;
+import com.imyme.mine.global.error.BusinessException;
+import com.imyme.mine.global.error.ErrorCode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.Base64;
+import java.util.List;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class NotificationService {
+
+    private static final int DEFAULT_SIZE = 20;
+    private static final int MAX_SIZE = 100;
+
+    private final NotificationRepository notificationRepository;
+
+    public NotificationListResponse getNotifications(
+        Long userId,
+        Boolean isRead,
+        String typeStr,
+        String cursor,
+        Integer sizeParam
+    ) {
+        int size = resolveSize(sizeParam);
+        NotificationType type = resolveType(typeStr);
+
+        // size + 1 개를 조회해서 hasNext 판단
+        PageRequest pageable = PageRequest.of(0, size + 1);
+
+        List<Notification> notifications;
+        if (cursor == null || cursor.isBlank()) {
+            notifications = notificationRepository.findNotificationsFirst(userId, isRead, type, pageable);
+        } else {
+            long[] decoded = decodeCursor(cursor);
+            LocalDateTime cursorCreatedAt = LocalDateTime.ofEpochSecond(decoded[0], (int) decoded[1], java.time.ZoneOffset.UTC);
+            long cursorId = decoded[2];
+            notifications = notificationRepository.findNotificationsAfterCursor(userId, isRead, type, cursorCreatedAt, cursorId, pageable);
+        }
+
+        return NotificationListResponse.of(notifications, size);
+    }
+
+    // ===== private helpers =====
+
+    private int resolveSize(Integer sizeParam) {
+        if (sizeParam == null) return DEFAULT_SIZE;
+        return Math.min(sizeParam, MAX_SIZE);
+    }
+
+    private NotificationType resolveType(String typeStr) {
+        if (typeStr == null || typeStr.isBlank()) return null;
+        try {
+            return NotificationType.valueOf(typeStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.INVALID_TYPE);
+        }
+    }
+
+    /**
+     * 커서 디코딩: Base64(createdAt_id) → [epochSecond, nano, id]
+     */
+    private long[] decodeCursor(String cursor) {
+        try {
+            String raw = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
+            // 형식: "2026-01-10T15:42:00_2"
+            int sep = raw.lastIndexOf('_');
+            if (sep == -1) throw new BusinessException(ErrorCode.INVALID_CURSOR);
+
+            LocalDateTime dt;
+            try {
+                dt = LocalDateTime.parse(raw.substring(0, sep));
+            } catch (DateTimeParseException e) {
+                throw new BusinessException(ErrorCode.INVALID_CURSOR);
+            }
+            long id = Long.parseLong(raw.substring(sep + 1));
+
+            return new long[]{dt.toEpochSecond(java.time.ZoneOffset.UTC), dt.getNano(), id};
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.INVALID_CURSOR);
+        }
+    }
+}
