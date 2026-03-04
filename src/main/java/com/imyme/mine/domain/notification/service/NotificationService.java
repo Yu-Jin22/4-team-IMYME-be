@@ -55,6 +55,21 @@ public class NotificationService {
         return NotificationListResponse.of(notifications, size);
     }
 
+    @Transactional
+    public void markAsRead(Long userId, Long notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
+
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
+        // 멱등성 보장: 이미 읽은 알림이어도 정상 처리
+        if (!Boolean.TRUE.equals(notification.getIsRead())) {
+            notification.markAsRead();
+        }
+    }
+
     // ===== private helpers =====
 
     private int resolveSize(Integer sizeParam) {

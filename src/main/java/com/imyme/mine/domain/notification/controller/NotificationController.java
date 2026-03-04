@@ -12,9 +12,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "10. Notification", description = "알림 API")
@@ -46,5 +50,19 @@ public class NotificationController {
             principal.getId(), isRead, type, cursor, size
         );
         return ApiResponse.success(response);
+    }
+
+    @Operation(
+        summary = "알림 읽음 처리",
+        description = "알림을 읽음 상태로 변경합니다. 이미 읽은 알림이어도 204를 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT")
+    @PatchMapping("/{notificationId}/read")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markAsRead(
+        @CurrentUser UserPrincipal principal,
+        @Parameter(description = "알림 ID") @PathVariable Long notificationId
+    ) {
+        notificationService.markAsRead(principal.getId(), notificationId);
     }
 }
