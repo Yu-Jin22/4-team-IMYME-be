@@ -1,5 +1,6 @@
 package com.imyme.mine.domain.notification.controller;
 
+import com.imyme.mine.domain.notification.dto.MarkAllReadResponse;
 import com.imyme.mine.domain.notification.dto.NotificationListResponse;
 import com.imyme.mine.domain.notification.service.NotificationService;
 import com.imyme.mine.global.common.response.ApiResponse;
@@ -50,6 +51,18 @@ public class NotificationController {
             principal.getId(), isRead, type, cursor, size
         );
         return ApiResponse.success(response);
+    }
+
+    @Operation(
+        summary = "모든 알림 읽음 처리",
+        description = "읽지 않은 알림을 단일 쿼리로 일괄 읽음 처리합니다. 읽지 않은 알림이 없어도 200을 반환합니다."
+    )
+    @SecurityRequirement(name = "JWT")
+    @PatchMapping("/read-all")
+    public ApiResponse<MarkAllReadResponse> markAllAsRead(
+        @CurrentUser UserPrincipal principal
+    ) {
+        return ApiResponse.success(notificationService.markAllAsRead(principal.getId()));
     }
 
     @Operation(

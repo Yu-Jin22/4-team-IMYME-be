@@ -1,5 +1,6 @@
 package com.imyme.mine.domain.notification.service;
 
+import com.imyme.mine.domain.notification.dto.MarkAllReadResponse;
 import com.imyme.mine.domain.notification.dto.NotificationListResponse;
 import com.imyme.mine.domain.notification.entity.Notification;
 import com.imyme.mine.domain.notification.entity.NotificationType;
@@ -53,6 +54,12 @@ public class NotificationService {
         }
 
         return NotificationListResponse.of(notifications, size);
+    }
+
+    @Transactional
+    public MarkAllReadResponse markAllAsRead(Long userId) {
+        int updatedCount = notificationRepository.markAllAsRead(userId);
+        return MarkAllReadResponse.of(updatedCount);
     }
 
     @Transactional

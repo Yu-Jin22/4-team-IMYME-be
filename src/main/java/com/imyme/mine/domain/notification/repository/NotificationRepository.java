@@ -4,6 +4,7 @@ import com.imyme.mine.domain.notification.entity.Notification;
 import com.imyme.mine.domain.notification.entity.NotificationType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -52,6 +53,13 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         @Param("cursorId") Long cursorId,
         Pageable pageable
     );
+
+    /**
+     * 읽지 않은 알림 일괄 읽음 처리 (단일 UPDATE)
+     */
+    @Modifying
+    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")
+    int markAllAsRead(@Param("userId") Long userId);
 
     /**
      * 읽지 않은 알림 개수 조회
