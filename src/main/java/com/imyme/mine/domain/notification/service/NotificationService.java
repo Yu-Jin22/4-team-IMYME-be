@@ -1,10 +1,16 @@
 package com.imyme.mine.domain.notification.service;
 
+import com.imyme.mine.domain.auth.entity.User;
+import com.imyme.mine.domain.auth.repository.UserRepository;
 import com.imyme.mine.domain.notification.dto.MarkAllReadResponse;
 import com.imyme.mine.domain.notification.dto.NotificationListResponse;
+import com.imyme.mine.domain.notification.dto.NotificationPreferencesRequest;
+import com.imyme.mine.domain.notification.dto.NotificationPreferencesResponse;
 import com.imyme.mine.domain.notification.dto.UnreadCountResponse;
 import com.imyme.mine.domain.notification.entity.Notification;
+import com.imyme.mine.domain.notification.entity.NotificationPreference;
 import com.imyme.mine.domain.notification.entity.NotificationType;
+import com.imyme.mine.domain.notification.repository.NotificationPreferenceRepository;
 import com.imyme.mine.domain.notification.repository.NotificationRepository;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
@@ -30,6 +36,8 @@ public class NotificationService {
     private static final int MAX_SIZE = 100;
 
     private final NotificationRepository notificationRepository;
+    private final NotificationPreferenceRepository preferenceRepository;
+    private final UserRepository userRepository;
 
     public NotificationListResponse getNotifications(
         Long userId,
@@ -55,6 +63,25 @@ public class NotificationService {
         }
 
         return NotificationListResponse.of(notifications, size);
+    }
+
+    @Transactional
+    public NotificationPreferencesResponse updatePreferences(Long userId, NotificationPreferencesRequest request) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        NotificationPreference pref = preferenceRepository.findByUserId(userId)
+            .orElseGet(() -> NotificationPreference.defaultFor(user));
+
+        pref.update(
+            request.allowGrowth(),
+            request.allowSoloResult(),
+            request.allowPvpResult(),
+            request.allowChallenge(),
+            request.allowSystem(),
+            request.allowInactivity()
+        );
+        return NotificationPreferencesResponse.from(preferenceRepository.save(pref));
     }
 
     public UnreadCountResponse getUnreadCount(Long userId) {

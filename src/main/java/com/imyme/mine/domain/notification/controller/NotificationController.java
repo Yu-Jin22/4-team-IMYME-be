@@ -2,6 +2,8 @@ package com.imyme.mine.domain.notification.controller;
 
 import com.imyme.mine.domain.notification.dto.MarkAllReadResponse;
 import com.imyme.mine.domain.notification.dto.NotificationListResponse;
+import com.imyme.mine.domain.notification.dto.NotificationPreferencesRequest;
+import com.imyme.mine.domain.notification.dto.NotificationPreferencesResponse;
 import com.imyme.mine.domain.notification.dto.UnreadCountResponse;
 import com.imyme.mine.domain.notification.service.NotificationService;
 import com.imyme.mine.global.common.response.ApiResponse;
@@ -14,10 +16,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -52,6 +57,19 @@ public class NotificationController {
             principal.getId(), isRead, type, cursor, size
         );
         return ApiResponse.success(response);
+    }
+
+    @Operation(
+        summary = "알림 수신 설정 변경",
+        description = "알림 타입별 수신 여부를 변경합니다. 설정이 없는 경우 기본값(모두 허용)으로 생성됩니다."
+    )
+    @SecurityRequirement(name = "JWT")
+    @PutMapping("/preferences")
+    public ApiResponse<NotificationPreferencesResponse> updatePreferences(
+        @CurrentUser UserPrincipal principal,
+        @Valid @RequestBody NotificationPreferencesRequest request
+    ) {
+        return ApiResponse.success(notificationService.updatePreferences(principal.getId(), request));
     }
 
     @Operation(
