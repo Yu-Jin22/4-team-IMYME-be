@@ -483,10 +483,11 @@ public class PvpRoomService {
 
     /**
      * 4.10 방 나가기
+     * - 비관적 락: doRecordingTransition과 직렬화하여 레이스 컨디션 방지 (Bug 1 fix)
      */
     @Transactional
     public LeaveResult leaveRoom(Long userId, Long roomId) {
-        PvpRoom room = pvpRoomRepository.findByIdWithDetails(roomId)
+        PvpRoom room = pvpRoomRepository.findByIdWithDetailsForUpdate(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ROOM_NOT_FOUND));
 
         // 참여자 확인
