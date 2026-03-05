@@ -19,6 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
@@ -153,33 +156,46 @@ public class KnowledgeBatchService {
         // 1. 키워드 로드
         Keyword keyword = loadKeyword(keywordId);
 
-        // 2. 피드백 로드
-        List<CardFeedback> feedbacks = loadFeedbacks(keywordId, startDate, endDate, keyword.getName());
-        resultBuilder.totalFeedbacks(feedbacks.size());
+        // 2~5. 페이지 단위 스트리밍 처리 (OOM 방지)
+        int totalFeedbacks = 0;
+        int createdCount = 0;
+        int updatedCount = 0;
+        int ignoredCount = 0;
+        int pageNumber = 0;
+        final int PAGE_SIZE = properties.getBatchSize();
 
-        if (feedbacks.isEmpty()) {
-            return resultBuilder
-                .endTime(LocalDateTime.now())
-                .successKeywords(1)
-                .build();
+        while (true) {
+            Slice<CardFeedback> slice = loadFeedbackSlice(keywordId, startDate, endDate, pageNumber, PAGE_SIZE);
+            List<CardFeedback> feedbacks = slice.getContent();
+
+            if (feedbacks.isEmpty()) {
+                break;
+            }
+
+            totalFeedbacks += feedbacks.size();
+            log.info("페이지 {} 처리 중 - 피드백 {}건", pageNumber, feedbacks.size());
+
+            // 피드백 아이템 추출 (중복 제거 및 해시 계산)
+            List<FeedbackItem> feedbackItems = extractFeedbackItems(feedbacks, keyword.getName());
+            log.info("중복 제거 후 처리 대상: {}개", feedbackItems.size());
+
+            if (!feedbackItems.isEmpty()) {
+                // 배치 생성 및 처리
+                List<List<FeedbackItem>> batches = createBatches(feedbackItems);
+                BatchProcessingResult pageResult = processBatches(batches, keyword, resultBuilder);
+                createdCount += pageResult.createdCount();
+                updatedCount += pageResult.updatedCount();
+                ignoredCount += pageResult.ignoredCount();
+            }
+
+            if (!slice.hasNext()) {
+                break;
+            }
+            pageNumber++;
         }
 
-        // 3. 피드백 아이템 추출 (중복 제거 및 해시 계산)
-        List<FeedbackItem> feedbackItems = extractFeedbackItems(feedbacks, keyword.getName());
-        log.info("중복 제거 후 처리 대상: {}개", feedbackItems.size());
-
-        if (feedbackItems.isEmpty()) {
-            return resultBuilder
-                .endTime(LocalDateTime.now())
-                .successKeywords(1)
-                .build();
-        }
-
-        // 4. 배치 생성
-        List<List<FeedbackItem>> batches = createBatches(feedbackItems);
-
-        // 5. 배치 처리 및 지식 저장
-        BatchProcessingResult processingResult = processBatches(batches, keyword, resultBuilder);
+        resultBuilder.totalFeedbacks(totalFeedbacks);
+        BatchProcessingResult processingResult = new BatchProcessingResult(createdCount, updatedCount, ignoredCount);
 
         return resultBuilder
             .endTime(LocalDateTime.now())
@@ -199,18 +215,16 @@ public class KnowledgeBatchService {
     }
 
     /**
-     * 2단계: 피드백 로드 (날짜 조건 분기 처리)
+     * 2단계: 피드백 Slice 조회 (페이지 단위, OOM 방지)
      */
-    private List<CardFeedback> loadFeedbacks(Long keywordId, LocalDateTime startDate, LocalDateTime endDate, String keywordName) {
-        List<CardFeedback> feedbacks;
+    private Slice<CardFeedback> loadFeedbackSlice(Long keywordId, LocalDateTime startDate, LocalDateTime endDate,
+                                                   int pageNumber, int pageSize) {
+        PageRequest pageable = PageRequest.of(pageNumber, pageSize);
         if (startDate != null && endDate != null) {
-            feedbacks = feedbackRepository.findByKeywordIdAndCreatedAtBetween(keywordId, startDate, endDate);
-            log.info("키워드 '{}' 기간 조회 ({} ~ {}): {}개", keywordName, startDate, endDate, feedbacks.size());
+            return feedbackRepository.findByKeywordIdAndCreatedAtBetweenSlice(keywordId, startDate, endDate, pageable);
         } else {
-            feedbacks = feedbackRepository.findByKeywordId(keywordId);
-            log.info("키워드 '{}' 전체 기간 조회: {}개", keywordName, feedbacks.size());
+            return feedbackRepository.findByKeywordIdSlice(keywordId, pageable);
         }
-        return feedbacks;
     }
 
     /**
