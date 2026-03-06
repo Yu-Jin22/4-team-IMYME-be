@@ -2,23 +2,24 @@ package com.imyme.mine.domain.card.service;
 
 import com.imyme.mine.domain.card.entity.CardAttempt;
 import com.imyme.mine.domain.card.repository.CardAttemptRepository;
+import com.imyme.mine.domain.learning.messaging.SoloRedisMessage;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
-import com.imyme.mine.global.sse.SseEmitterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Map;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AttemptSttService {
 
+    private static final String SOLO_RESULT_CHANNEL_PREFIX = "solo:result:";
+
     private final CardAttemptRepository cardAttemptRepository;
-    private final SseEmitterRegistry sseEmitterRegistry;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
     public void recordSttSuccess(Long attemptId, String sttText) {
@@ -27,7 +28,8 @@ public class AttemptSttService {
         attempt.recordSttResult(sttText);
         log.info("STT 처리 성공 - attemptId: {}, 텍스트 길이: {}", attemptId, sttText.length());
         // STT 완료 → FEEDBACK_GENERATION 단계로 전환 알림 (연결 유지)
-        sseEmitterRegistry.push(attemptId, Map.of("status", "PROCESSING", "step", "FEEDBACK_GENERATION"));
+        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+            SoloRedisMessage.push(attemptId, "PROCESSING", "FEEDBACK_GENERATION"));
     }
 
     @Transactional
@@ -37,7 +39,8 @@ public class AttemptSttService {
         attempt.fail(errorCode);
         log.info("STT 처리 실패 상태 저장 - attemptId: {}, errorCode: {}", attemptId, errorCode);
         // STT 실패 → 클라이언트에 FAILED 알림 (연결 종료)
-        sseEmitterRegistry.emit(attemptId, "FAILED");
+        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+            SoloRedisMessage.emit(attemptId, "FAILED"));
     }
 
     /**

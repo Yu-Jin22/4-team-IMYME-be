@@ -8,12 +8,12 @@ import com.imyme.mine.domain.card.repository.CardAttemptRepository;
 import com.imyme.mine.domain.card.service.AttemptSttService;
 import com.imyme.mine.domain.knowledge.service.KnowledgeBaseService;
 import com.imyme.mine.domain.learning.messaging.SoloMqPublisher;
+import com.imyme.mine.domain.learning.messaging.SoloRedisMessage;
 import com.imyme.mine.domain.learning.messaging.dto.SoloFeedbackRequestDto;
 import com.imyme.mine.domain.learning.messaging.dto.SoloFeedbackResponseDto;
 import com.imyme.mine.domain.learning.messaging.dto.SoloSttResponseDto;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
-import com.imyme.mine.global.sse.SseEmitterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -38,12 +38,13 @@ public class SoloMqConsumerService {
     private static final String REQUEST_ID_KEY_PREFIX = "solo:mq:request:";
     private static final Duration REQUEST_ID_TTL = Duration.ofDays(1);
 
+    private static final String SOLO_RESULT_CHANNEL_PREFIX = "solo:result:";
+
     private final AttemptSttService attemptSttService;
     private final SoloFeedbackSaveService feedbackSaveService;
     private final SoloMqPublisher soloMqPublisher;
     private final CardAttemptRepository cardAttemptRepository;
     private final KnowledgeBaseService knowledgeBaseService;
-    private final SseEmitterRegistry sseEmitterRegistry;
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
@@ -106,7 +107,8 @@ public class SoloMqConsumerService {
         );
         SoloResult soloResult = new SoloResult(fb.score(), null, soloFeedback);
         feedbackSaveService.save(attemptId, soloResult);
-        sseEmitterRegistry.emit(attemptId, "COMPLETED");
+        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+            SoloRedisMessage.emit(attemptId, "COMPLETED"));
     }
 
     /**
@@ -152,7 +154,8 @@ public class SoloMqConsumerService {
             attempt.fail(errorCode);
             log.info("[Solo MQ] 시도 실패 상태 저장 - attemptId: {}, errorCode: {}", attemptId, errorCode);
         });
-        sseEmitterRegistry.emit(attemptId, "FAILED");
+        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+            SoloRedisMessage.emit(attemptId, "FAILED"));
     }
 
     /**

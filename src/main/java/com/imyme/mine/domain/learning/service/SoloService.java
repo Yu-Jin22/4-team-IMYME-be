@@ -4,12 +4,13 @@ import com.imyme.mine.domain.ai.client.AiServerClient;
 import com.imyme.mine.domain.ai.dto.solo.*;
 import com.imyme.mine.domain.card.event.AttemptUploadedEvent;
 import com.imyme.mine.domain.card.service.AttemptSttService;
+import com.imyme.mine.domain.learning.messaging.SoloRedisMessage;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
-import com.imyme.mine.global.sse.SseEmitterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,10 +28,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SoloService {
 
+    private static final String SOLO_RESULT_CHANNEL_PREFIX = "solo:result:";
+
     private final AiServerClient aiServerClient;
     private final SoloFeedbackSaveService feedbackSaveService;
-    private final SseEmitterRegistry sseEmitterRegistry;
     private final AttemptSttService attemptSttService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     private static final int MAX_RETRIES = 60;  // 최대 60회 (3분)
     private static final long POLL_INTERVAL_MS = 3000;  // 3초 간격
@@ -107,11 +110,13 @@ public class SoloService {
                     // 완료되면 DB에 저장
                     if (response.result() != null) {
                         feedbackSaveService.save(attemptId, response.result());
-                        sseEmitterRegistry.emit(attemptId, "COMPLETED");
+                        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                            SoloRedisMessage.emit(attemptId, "COMPLETED"));
                         log.info("Solo 분석 완료 및 저장 성공 - attemptId: {}", attemptId);
                     } else {
                         log.warn("Solo 분석 완료되었으나 result가 null - attemptId: {}", attemptId);
-                        sseEmitterRegistry.emit(attemptId, "FAILED");
+                        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                            SoloRedisMessage.emit(attemptId, "FAILED"));
                     }
                     return;
                 }
@@ -119,8 +124,9 @@ public class SoloService {
                 // 실패 상태 확인
                 if ("failed".equalsIgnoreCase(response.status())) {
                     log.error("Solo 분석 실패 - attemptId: {}", attemptId);
-                    attemptSttService.recordFailure(attemptId,"AI_FEEDBACK_FAILED");
-                    sseEmitterRegistry.emit(attemptId, "FAILED");
+                    attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+                    redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                        SoloRedisMessage.emit(attemptId, "FAILED"));
                     return;
                 }
 
@@ -130,14 +136,16 @@ public class SoloService {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log.error("Solo 폴링 중단 - attemptId: {}", attemptId, e);
-                attemptSttService.recordFailure(attemptId,"POLLING_INTERRUPTED");
-                sseEmitterRegistry.emit(attemptId, "FAILED");
+                attemptSttService.recordFailure(attemptId, "POLLING_INTERRUPTED");
+                redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                    SoloRedisMessage.emit(attemptId, "FAILED"));
                 throw new RuntimeException("Solo polling interrupted", e);
 
             } catch (BusinessException e) {
                 if (e.getErrorCode() == ErrorCode.AI_ANALYSIS_FAILED || e.getErrorCode() == ErrorCode.AI_POLLING_TIMEOUT) {
-                    attemptSttService.recordFailure(attemptId,"AI_FEEDBACK_FAILED");
-                    sseEmitterRegistry.emit(attemptId, "FAILED");
+                    attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+                    redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                        SoloRedisMessage.emit(attemptId, "FAILED"));
                     return;
                 }
                 log.error("Solo 폴링 비즈니스 에러 - attemptId: {}, retry: {}", attemptId, i + 1, e);
@@ -150,8 +158,9 @@ public class SoloService {
 
         // 최대 재시도 횟수 초과
         log.warn("Solo 폴링 타임아웃 (3분 초과) - attemptId: {}", attemptId);
-        attemptSttService.recordFailure(attemptId,"AI_FEEDBACK_FAILED");
-        sseEmitterRegistry.emit(attemptId, "FAILED");
+        attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+            SoloRedisMessage.emit(attemptId, "FAILED"));
     }
 
 }
