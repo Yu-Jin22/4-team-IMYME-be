@@ -68,6 +68,37 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(pvpFeedbackResponseQueue).to(pvpDirectExchange).with(PVP_FEEDBACK_RESPONSE_ROUTING_KEY);
     }
 
+    // ===== Solo Exchange / Queue / Binding (Response 큐만 선언) =====
+
+    @Bean
+    public DirectExchange soloDirectExchange(SoloMqProperties soloMqProperties) {
+        return new DirectExchange(soloMqProperties.getExchange(), true, false);
+    }
+
+    @Bean
+    public Queue soloSttResponseQueue(SoloMqProperties soloMqProperties) {
+        return new Queue(soloMqProperties.getQueue().getSttResponse(), true, false, false);
+    }
+
+    @Bean
+    public Queue soloFeedbackResponseQueue(SoloMqProperties soloMqProperties) {
+        return new Queue(soloMqProperties.getQueue().getFeedbackResponse(), true, false, false);
+    }
+
+    @Bean
+    public Binding soloSttResponseBinding(Queue soloSttResponseQueue, DirectExchange soloDirectExchange,
+                                           SoloMqProperties soloMqProperties) {
+        return BindingBuilder.bind(soloSttResponseQueue).to(soloDirectExchange)
+            .with(soloMqProperties.getQueue().getSttResponse());
+    }
+
+    @Bean
+    public Binding soloFeedbackResponseBinding(Queue soloFeedbackResponseQueue, DirectExchange soloDirectExchange,
+                                                SoloMqProperties soloMqProperties) {
+        return BindingBuilder.bind(soloFeedbackResponseQueue).to(soloDirectExchange)
+            .with(soloMqProperties.getQueue().getFeedbackResponse());
+    }
+
     // ===== Message Converter =====
 
     /**
