@@ -24,6 +24,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -165,8 +166,9 @@ public class PvpMqConsumerService {
         }
 
         FeedbackRequestDto feedbackRequest = FeedbackRequestDto.builder()
+                .requestId(UUID.randomUUID().toString())
                 .roomId(roomId)
-                .timestamp(System.currentTimeMillis() / 1000)
+                .timestamp(System.currentTimeMillis())
                 .criteria(FeedbackRequestDto.Criteria.builder()
                         .keyword(keywordName)
                         .modelAnswer("")

@@ -8,10 +8,11 @@ import java.util.Map;
 
 /**
  * Solo Feedback 요청 DTO (Main → AI)
- * Schema: {attempt_id, user_id, stt_text, criteria: {keyword, model_answer}, history: [], timestamp}
+ * Schema: {request_id, attempt_id, user_id, stt_text, criteria: {keyword, model_answer}, history: [], timestamp}
  */
 @Builder
 public record SoloFeedbackRequestDto(
+    @JsonProperty("request_id") String requestId,
     @JsonProperty("attempt_id") Long attemptId,
     @JsonProperty("user_id") Long userId,
     @JsonProperty("stt_text") String sttText,
@@ -22,6 +23,6 @@ public record SoloFeedbackRequestDto(
     @Builder
     public record CriteriaDto(
         @JsonProperty("keyword") String keyword,
-        @JsonProperty("model_answer") List<String> modelAnswer
+        @JsonProperty("model_answer") String modelAnswer
     ) {}
 }

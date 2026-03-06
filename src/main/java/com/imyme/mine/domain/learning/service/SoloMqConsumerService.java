@@ -16,20 +16,27 @@ import com.imyme.mine.global.error.ErrorCode;
 import com.imyme.mine.global.sse.SseEmitterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Solo MQ Consumer 비즈니스 로직
  * - STT Response: STT 결과 저장 + Feedback Request 발행
  * - Feedback Response: 피드백 저장 or 실패 처리
+ * - Redis SETNX로 request_id 기반 중복 처리 방지
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SoloMqConsumerService {
+
+    private static final String REQUEST_ID_KEY_PREFIX = "solo:mq:request:";
+    private static final Duration REQUEST_ID_TTL = Duration.ofDays(1);
 
     private final AttemptSttService attemptSttService;
     private final SoloFeedbackSaveService feedbackSaveService;
@@ -37,9 +44,11 @@ public class SoloMqConsumerService {
     private final CardAttemptRepository cardAttemptRepository;
     private final KnowledgeBaseService knowledgeBaseService;
     private final SseEmitterRegistry sseEmitterRegistry;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * STT Response 처리 (AI → Main)
+     * - request_id 중복 방지 (Redis SETNX)
      * - SUCCESS: STT 텍스트 저장 + Feedback Request 발행
      * - FAIL: 시도 실패 상태 저장
      */
@@ -48,21 +57,24 @@ public class SoloMqConsumerService {
         Long attemptId = dto.attemptId();
         log.info("[Solo MQ] STT Response 처리 - attemptId: {}, status: {}", attemptId, dto.status());
 
+        if (!acquireRequestLock(dto.requestId())) {
+            log.warn("[Solo MQ] STT Response 중복 수신 무시 - requestId: {}, attemptId: {}", dto.requestId(), attemptId);
+            return;
+        }
+
         if ("FAIL".equalsIgnoreCase(dto.status())) {
             log.warn("[Solo MQ] STT 실패 - attemptId: {}, error: {}", attemptId, dto.error());
             attemptSttService.recordSttFailure(attemptId, "STT_RECOGNIZE_FAILED");
             return;
         }
 
-        // STT 성공: 텍스트 저장
         attemptSttService.recordSttSuccess(attemptId, dto.sttText());
-
-        // Feedback Request 발행 (트랜잭션 내 Lazy Loading 가능)
         publishFeedbackRequest(attemptId, dto.userId(), dto.sttText());
     }
 
     /**
      * Feedback Response 처리 (AI → Main)
+     * - request_id 중복 방지 (Redis SETNX)
      * - SUCCESS: 피드백 저장 (SoloFeedbackSaveService 위임)
      * - FAIL: 시도 실패 상태 저장
      */
@@ -70,6 +82,11 @@ public class SoloMqConsumerService {
     public void handleFeedbackResponse(SoloFeedbackResponseDto dto) {
         Long attemptId = dto.attemptId();
         log.info("[Solo MQ] Feedback Response 처리 - attemptId: {}, status: {}", attemptId, dto.status());
+
+        if (!acquireRequestLock(dto.requestId())) {
+            log.warn("[Solo MQ] Feedback Response 중복 수신 무시 - requestId: {}, attemptId: {}", dto.requestId(), attemptId);
+            return;
+        }
 
         if ("FAIL".equalsIgnoreCase(dto.status())) {
             log.warn("[Solo MQ] Feedback 실패 - attemptId: {}, error: {}", attemptId, dto.error());
@@ -95,7 +112,8 @@ public class SoloMqConsumerService {
     /**
      * STT 성공 후 Feedback Request 발행
      * - Card/Keyword Lazy Loading: @Transactional 컨텍스트 내에서 실행됨
-     * - 발행 실패 시 시도를 FAILED 처리 (STT 텍스트는 이미 저장됨)
+     * - model_answer: List<String> → "\n\n" 구분 String으로 결합
+     * - 발행 실패 시 시도를 FAILED 처리
      */
     private void publishFeedbackRequest(Long attemptId, Long userId, String sttText) {
         try {
@@ -105,14 +123,16 @@ public class SoloMqConsumerService {
             Card card = attempt.getCard();
             String keywordName = card.getKeyword().getName();
             List<String> modelAnswers = knowledgeBaseService.getModelAnswersByKeyword(card.getKeyword().getId());
+            String modelAnswer = modelAnswers.isEmpty() ? null : String.join("\n\n", modelAnswers);
 
             SoloFeedbackRequestDto feedbackRequest = SoloFeedbackRequestDto.builder()
+                .requestId(UUID.randomUUID().toString())
                 .attemptId(attemptId)
                 .userId(userId)
                 .sttText(sttText)
                 .criteria(SoloFeedbackRequestDto.CriteriaDto.builder()
                     .keyword(keywordName)
-                    .modelAnswer(modelAnswers)
+                    .modelAnswer(modelAnswer)
                     .build())
                 .history(List.of())
                 .timestamp(System.currentTimeMillis())
@@ -133,5 +153,19 @@ public class SoloMqConsumerService {
             log.info("[Solo MQ] 시도 실패 상태 저장 - attemptId: {}, errorCode: {}", attemptId, errorCode);
         });
         sseEmitterRegistry.emit(attemptId, "FAILED");
+    }
+
+    /**
+     * Redis SETNX로 request_id 중복 처리 방지
+     * - 최초 수신: true (처리 진행)
+     * - 중복 수신: false (처리 스킵)
+     */
+    private boolean acquireRequestLock(String requestId) {
+        if (requestId == null || requestId.isBlank()) {
+            return true; // request_id 없으면 중복 체크 스킵
+        }
+        String key = REQUEST_ID_KEY_PREFIX + requestId;
+        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, "1", REQUEST_ID_TTL);
+        return Boolean.TRUE.equals(acquired);
     }
 }

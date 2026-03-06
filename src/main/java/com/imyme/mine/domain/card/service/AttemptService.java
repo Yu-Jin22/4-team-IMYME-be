@@ -40,6 +40,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -148,6 +149,7 @@ public class AttemptService {
                 // MQ 경로: STT 요청을 MQ로 발행 (AI 서버가 비동기 처리)
                 log.info("[Solo MQ] STT Request 발행 - attemptId: {}", attemptId);
                 SoloSttRequestDto payload = SoloSttRequestDto.builder()
+                    .requestId(UUID.randomUUID().toString())
                     .attemptId(attemptId)
                     .userId(card.getUser().getId())
                     .audioUrl(readPresignedUrl)

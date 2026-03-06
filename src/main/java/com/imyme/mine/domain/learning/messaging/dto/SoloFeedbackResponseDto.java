@@ -8,9 +8,10 @@ import java.util.List;
 
 /**
  * Solo Feedback 응답 DTO (AI → Main)
- * Schema: {attempt_id, user_id, status (SUCCESS/FAIL), feedback: {score, grade, summary, keywords, facts, understanding, personalized_feedback}, error}
+ * Schema: {request_id, attempt_id, user_id, status (SUCCESS/FAIL), feedback: {score, grade, summary, keywords, facts, understanding, personalized_feedback}, error}
  */
 public record SoloFeedbackResponseDto(
+    @JsonProperty("request_id") String requestId,
     @JsonProperty("attempt_id") Long attemptId,
     @JsonProperty("user_id") Long userId,
     @JsonProperty("status") String status,
@@ -19,7 +20,7 @@ public record SoloFeedbackResponseDto(
 ) {
     public record FeedbackDto(
         @JsonProperty("score") Integer score,
-        @JsonProperty("grade") String grade,
+        @JsonProperty("grade") Integer grade,
         @JsonProperty("summary") String summary,
         @JsonProperty("keywords") @JsonDeserialize(using = KeywordListDeserializer.class) List<String> keywords,
         @JsonProperty("facts") String facts,
