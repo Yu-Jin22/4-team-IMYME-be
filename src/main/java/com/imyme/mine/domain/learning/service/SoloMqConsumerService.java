@@ -13,6 +13,7 @@ import com.imyme.mine.domain.learning.messaging.dto.SoloFeedbackResponseDto;
 import com.imyme.mine.domain.learning.messaging.dto.SoloSttResponseDto;
 import com.imyme.mine.global.error.BusinessException;
 import com.imyme.mine.global.error.ErrorCode;
+import com.imyme.mine.global.sse.SseEmitterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class SoloMqConsumerService {
     private final SoloMqPublisher soloMqPublisher;
     private final CardAttemptRepository cardAttemptRepository;
     private final KnowledgeBaseService knowledgeBaseService;
+    private final SseEmitterRegistry sseEmitterRegistry;
 
     /**
      * STT Response 처리 (AI → Main)
@@ -87,6 +89,7 @@ public class SoloMqConsumerService {
         );
         SoloResult soloResult = new SoloResult(fb.score(), null, soloFeedback);
         feedbackSaveService.save(attemptId, soloResult);
+        sseEmitterRegistry.emit(attemptId, "COMPLETED");
     }
 
     /**
@@ -129,5 +132,6 @@ public class SoloMqConsumerService {
             attempt.fail(errorCode);
             log.info("[Solo MQ] 시도 실패 상태 저장 - attemptId: {}, errorCode: {}", attemptId, errorCode);
         });
+        sseEmitterRegistry.emit(attemptId, "FAILED");
     }
 }
