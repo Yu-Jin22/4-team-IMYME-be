@@ -71,7 +71,8 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**",
                                 "/actuator/health",      // 헬스체크 (화이트리스트)
-                                "/actuator/prometheus"   // Prometheus 메트릭 (화이트리스트)
+                                "/actuator/prometheus",  // Prometheus 메트릭 (화이트리스트)
+                                "/cards/*/attempts/*/stream" // SSE 스트림 (토큰 인증, JWT 미사용)
                         ).permitAll()
                         .anyRequest().authenticated())
 
