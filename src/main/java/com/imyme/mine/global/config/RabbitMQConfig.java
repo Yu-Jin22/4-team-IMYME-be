@@ -92,16 +92,12 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue pvpSttResponseQueue() {
-        return QueueBuilder.durable(PVP_STT_RESPONSE_QUEUE)
-            .withArgument("x-dead-letter-exchange", PVP_DLX)
-            .build();
+        return QueueBuilder.durable(PVP_STT_RESPONSE_QUEUE).build();
     }
 
     @Bean
     public Queue pvpFeedbackResponseQueue() {
-        return QueueBuilder.durable(PVP_FEEDBACK_RESPONSE_QUEUE)
-            .withArgument("x-dead-letter-exchange", PVP_DLX)
-            .build();
+        return QueueBuilder.durable(PVP_FEEDBACK_RESPONSE_QUEUE).build();
     }
 
     @Bean
@@ -123,16 +119,12 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue soloSttResponseQueue(SoloMqProperties soloMqProperties) {
-        return QueueBuilder.durable(soloMqProperties.getQueue().getSttResponse())
-            .withArgument("x-dead-letter-exchange", SOLO_DLX)
-            .build();
+        return QueueBuilder.durable(soloMqProperties.getQueue().getSttResponse()).build();
     }
 
     @Bean
     public Queue soloFeedbackResponseQueue(SoloMqProperties soloMqProperties) {
-        return QueueBuilder.durable(soloMqProperties.getQueue().getFeedbackResponse())
-            .withArgument("x-dead-letter-exchange", SOLO_DLX)
-            .build();
+        return QueueBuilder.durable(soloMqProperties.getQueue().getFeedbackResponse()).build();
     }
 
     @Bean
