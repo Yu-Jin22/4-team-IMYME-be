@@ -36,6 +36,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -394,10 +395,11 @@ public class PvpRoomService {
         String audioUrl = storageService.generatePresignedGetUrl(objectKey);
 
         SttRequestDto sttRequest = SttRequestDto.builder()
+                .requestId(UUID.randomUUID().toString())
                 .roomId(submission.getRoom().getId())
                 .userId(userId)
                 .audioUrl(audioUrl)
-                .timestamp(System.currentTimeMillis() / 1000) // Unix timestamp (초 단위)
+                .timestamp(System.currentTimeMillis())
                 .build();
 
         // 트랜잭션 커밋 후 RabbitMQ 메시지 발행
