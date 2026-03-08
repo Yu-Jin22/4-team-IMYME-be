@@ -79,7 +79,6 @@ public class SoloMqConsumerService {
      * - SUCCESS: 피드백 저장 (SoloFeedbackSaveService 위임)
      * - FAIL: 시도 실패 상태 저장
      */
-    @Transactional
     public void handleFeedbackResponse(SoloFeedbackResponseDto dto) {
         Long attemptId = dto.attemptId();
         log.info("[Solo MQ] Feedback Response 처리 - attemptId: {}, status: {}", attemptId, dto.status());
@@ -91,14 +90,18 @@ public class SoloMqConsumerService {
 
         if ("FAIL".equalsIgnoreCase(dto.status())) {
             log.warn("[Solo MQ] Feedback 실패 - attemptId: {}, error: {}", attemptId, dto.error());
-            markAttemptFailed(attemptId, "AI_FEEDBACK_FAILED");
+            attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+            redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                SoloRedisMessage.emit(attemptId, "FAILED"));
             return;
         }
 
         SoloFeedbackResponseDto.FeedbackDto fb = dto.feedback();
         if (fb == null) {
             log.warn("[Solo MQ] Feedback 데이터 없음 - attemptId: {}", attemptId);
-            markAttemptFailed(attemptId, "AI_FEEDBACK_FAILED");
+            attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+            redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                SoloRedisMessage.emit(attemptId, "FAILED"));
             return;
         }
 
@@ -106,9 +109,9 @@ public class SoloMqConsumerService {
             fb.summary(), fb.keywords(), fb.facts(), fb.understanding(), fb.personalizedFeedback()
         );
         SoloResult soloResult = new SoloResult(fb.score(), null, soloFeedback);
-        feedbackSaveService.save(attemptId, soloResult);
+        feedbackSaveService.save(attemptId, soloResult);  // @Transactional → 여기서 커밋
         redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
-            SoloRedisMessage.emit(attemptId, "COMPLETED"));
+            SoloRedisMessage.emit(attemptId, "COMPLETED"));  // 커밋 후 SSE 발송
     }
 
     /**
