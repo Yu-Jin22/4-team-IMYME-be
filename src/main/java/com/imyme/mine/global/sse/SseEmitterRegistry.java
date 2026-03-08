@@ -117,7 +117,7 @@ public class SseEmitterRegistry {
                 emitter.send(SseEmitter.event().comment("keep-alive"));
             } catch (Exception e) {
                 log.debug("[SSE] heartbeat 실패 (연결 종료 추정): attemptId={}", attemptId);
-                emitters.remove(attemptId);
+                emitters.remove(attemptId, emitter);
             }
         });
     }

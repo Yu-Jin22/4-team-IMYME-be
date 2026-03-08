@@ -19,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.util.List;
@@ -70,7 +72,23 @@ public class SoloMqConsumerService {
         }
 
         attemptSttService.recordSttSuccess(attemptId, dto.sttText());
-        publishFeedbackRequest(attemptId, dto.userId(), dto.sttText());
+
+        // TX 커밋 후 MQ 발행 - 커밋 전 발행 시 TX 롤백되면 고아 메시지 발생
+        SoloFeedbackRequestDto feedbackRequest = buildFeedbackRequestDto(attemptId, dto.userId(), dto.sttText());
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    soloMqPublisher.publishFeedbackRequest(feedbackRequest);
+                    log.info("[Solo MQ] Feedback Request 발행 완료 - attemptId: {}", attemptId);
+                } catch (Exception e) {
+                    log.error("[Solo MQ] Feedback Request 발행 실패 - attemptId: {}", attemptId, e);
+                    attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+                    redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                        SoloRedisMessage.emit(attemptId, "FAILED"));
+                }
+            }
+        });
     }
 
     /**
@@ -79,7 +97,6 @@ public class SoloMqConsumerService {
      * - SUCCESS: 피드백 저장 (SoloFeedbackSaveService 위임)
      * - FAIL: 시도 실패 상태 저장
      */
-    @Transactional
     public void handleFeedbackResponse(SoloFeedbackResponseDto dto) {
         Long attemptId = dto.attemptId();
         log.info("[Solo MQ] Feedback Response 처리 - attemptId: {}, status: {}", attemptId, dto.status());
@@ -91,14 +108,18 @@ public class SoloMqConsumerService {
 
         if ("FAIL".equalsIgnoreCase(dto.status())) {
             log.warn("[Solo MQ] Feedback 실패 - attemptId: {}, error: {}", attemptId, dto.error());
-            markAttemptFailed(attemptId, "AI_FEEDBACK_FAILED");
+            attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+            redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                SoloRedisMessage.emit(attemptId, "FAILED"));
             return;
         }
 
         SoloFeedbackResponseDto.FeedbackDto fb = dto.feedback();
         if (fb == null) {
             log.warn("[Solo MQ] Feedback 데이터 없음 - attemptId: {}", attemptId);
-            markAttemptFailed(attemptId, "AI_FEEDBACK_FAILED");
+            attemptSttService.recordFailure(attemptId, "AI_FEEDBACK_FAILED");
+            redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
+                SoloRedisMessage.emit(attemptId, "FAILED"));
             return;
         }
 
@@ -106,56 +127,38 @@ public class SoloMqConsumerService {
             fb.summary(), fb.keywords(), fb.facts(), fb.understanding(), fb.personalizedFeedback()
         );
         SoloResult soloResult = new SoloResult(fb.score(), null, soloFeedback);
-        feedbackSaveService.save(attemptId, soloResult);
+        feedbackSaveService.save(attemptId, soloResult);  // @Transactional → 여기서 커밋
         redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
-            SoloRedisMessage.emit(attemptId, "COMPLETED"));
+            SoloRedisMessage.emit(attemptId, "COMPLETED"));  // 커밋 후 SSE 발송
     }
 
     /**
-     * STT 성공 후 Feedback Request 발행
+     * STT 성공 후 Feedback Request DTO 생성 (TX 내 Lazy Loading)
      * - Card/Keyword Lazy Loading: @Transactional 컨텍스트 내에서 실행됨
      * - model_answer: List<String> → "\n\n" 구분 String으로 결합
-     * - 발행 실패 시 시도를 FAILED 처리
+     * - MQ 발행은 afterCommit에서 수행 (TX 롤백 시 고아 메시지 방지)
      */
-    private void publishFeedbackRequest(Long attemptId, Long userId, String sttText) {
-        try {
-            CardAttempt attempt = cardAttemptRepository.findByIdWithCardAndUser(attemptId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ATTEMPT_NOT_FOUND));
+    private SoloFeedbackRequestDto buildFeedbackRequestDto(Long attemptId, Long userId, String sttText) {
+        CardAttempt attempt = cardAttemptRepository.findByIdWithCardAndUser(attemptId)
+            .orElseThrow(() -> new BusinessException(ErrorCode.ATTEMPT_NOT_FOUND));
 
-            Card card = attempt.getCard();
-            String keywordName = card.getKeyword().getName();
-            List<String> modelAnswers = knowledgeBaseService.getModelAnswersByKeyword(card.getKeyword().getId());
-            String modelAnswer = modelAnswers.isEmpty() ? null : String.join("\n\n", modelAnswers);
+        Card card = attempt.getCard();
+        String keywordName = card.getKeyword().getName();
+        List<String> modelAnswers = knowledgeBaseService.getModelAnswersByKeyword(card.getKeyword().getId());
+        String modelAnswer = modelAnswers.isEmpty() ? null : String.join("\n\n", modelAnswers);
 
-            SoloFeedbackRequestDto feedbackRequest = SoloFeedbackRequestDto.builder()
-                .requestId(UUID.randomUUID().toString())
-                .attemptId(attemptId)
-                .userId(userId)
-                .sttText(sttText)
-                .criteria(SoloFeedbackRequestDto.CriteriaDto.builder()
-                    .keyword(keywordName)
-                    .modelAnswer(modelAnswer)
-                    .build())
-                .history(List.of())
-                .timestamp(System.currentTimeMillis())
-                .build();
-
-            soloMqPublisher.publishFeedbackRequest(feedbackRequest);
-            log.info("[Solo MQ] Feedback Request 발행 완료 - attemptId: {}", attemptId);
-
-        } catch (Exception e) {
-            log.error("[Solo MQ] Feedback Request 발행 실패 - attemptId: {}", attemptId, e);
-            markAttemptFailed(attemptId, "AI_FEEDBACK_FAILED");
-        }
-    }
-
-    private void markAttemptFailed(Long attemptId, String errorCode) {
-        cardAttemptRepository.findById(attemptId).ifPresent(attempt -> {
-            attempt.fail(errorCode);
-            log.info("[Solo MQ] 시도 실패 상태 저장 - attemptId: {}, errorCode: {}", attemptId, errorCode);
-        });
-        redisTemplate.convertAndSend(SOLO_RESULT_CHANNEL_PREFIX + attemptId,
-            SoloRedisMessage.emit(attemptId, "FAILED"));
+        return SoloFeedbackRequestDto.builder()
+            .requestId(UUID.randomUUID().toString())
+            .attemptId(attemptId)
+            .userId(userId)
+            .sttText(sttText)
+            .criteria(SoloFeedbackRequestDto.CriteriaDto.builder()
+                .keyword(keywordName)
+                .modelAnswer(modelAnswer)
+                .build())
+            .history(List.of())
+            .timestamp(System.currentTimeMillis())
+            .build();
     }
 
     /**
