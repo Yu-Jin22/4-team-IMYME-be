@@ -1,0 +1,71 @@
+package com.imyme.mine.global.controller;
+
+import com.imyme.mine.global.scheduler.RetentionScheduler;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 배치 수동 트리거 (개발/테스트 전용)
+ *
+ * <p>배포 전 반드시 제거하거나 @Profile("local") 으로 제한할 것.
+ * 엔드포인트 인증 없음 — 내부망/개발 서버에서만 사용.
+ */
+@Slf4j
+@RestController
+@RequestMapping("/test/batch")
+@RequiredArgsConstructor
+public class BatchTestController {
+
+    private final RetentionScheduler retentionScheduler;
+
+    /** 03:00 — 만료 세션 삭제 */
+    @PostMapping("/retention/expired-sessions")
+    public String triggerExpiredSessions() {
+        log.info("[BatchTest] 만료 세션 삭제 수동 트리거");
+        retentionScheduler.deleteExpiredSessions();
+        return "OK: expired sessions deleted";
+    }
+
+    /** 03:00 — 미사용 기기 Soft Delete */
+    @PostMapping("/retention/inactive-devices")
+    public String triggerInactiveDevices() {
+        log.info("[BatchTest] 미사용 기기 Soft Delete 수동 트리거");
+        retentionScheduler.softDeleteInactiveDevices();
+        return "OK: inactive devices soft-deleted";
+    }
+
+    /** 04:00 — 탈퇴 회원 Hard Delete + S3 삭제 */
+    @PostMapping("/retention/withdrawn-users")
+    public String triggerWithdrawnUsers() {
+        log.info("[BatchTest] 탈퇴 회원 Hard Delete 수동 트리거");
+        retentionScheduler.hardDeleteWithdrawnUsers();
+        return "OK: withdrawn users hard-deleted";
+    }
+
+    /** 04:00 — 삭제 카드 Hard Delete + S3 오디오 삭제 */
+    @PostMapping("/retention/deleted-cards")
+    public String triggerDeletedCards() {
+        log.info("[BatchTest] 삭제 카드 Hard Delete 수동 트리거");
+        retentionScheduler.hardDeleteSoftDeletedCards();
+        return "OK: soft-deleted cards hard-deleted";
+    }
+
+    /** 04:00 — 읽은 알림 삭제 */
+    @PostMapping("/retention/old-notifications")
+    public String triggerOldNotifications() {
+        log.info("[BatchTest] 읽은 알림 삭제 수동 트리거");
+        retentionScheduler.deleteOldReadNotifications();
+        return "OK: old read notifications deleted";
+    }
+
+    /** 05:00 — 알림 로그 삭제 */
+    @PostMapping("/retention/notification-logs")
+    public String triggerNotificationLogs() {
+        log.info("[BatchTest] 알림 발송 로그 삭제 수동 트리거");
+        retentionScheduler.deleteOldNotificationLogs();
+        return "OK: old notification logs deleted";
+    }
+}
