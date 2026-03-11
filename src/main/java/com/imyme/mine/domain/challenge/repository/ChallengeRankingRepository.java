@@ -16,8 +16,10 @@ import java.util.Optional;
  */
 public interface ChallengeRankingRepository extends JpaRepository<ChallengeRanking, Long> {
 
+    // ===== Read API 용 (페이지네이션) =====
+
     /**
-     * 챌린지 랭킹 목록 조회 (rank_no ASC)
+     * 챌린지 랭킹 목록 조회 - 페이지네이션 (GET /rankings 용)
      */
     Page<ChallengeRanking> findByChallengeIdOrderByRankNoAsc(Long challengeId, Pageable pageable);
 
@@ -46,7 +48,17 @@ public interface ChallengeRankingRepository extends JpaRepository<ChallengeRanki
     );
 
     /**
-     * 챌린지 참여자 수 (완료된 attempt 기준)
+     * 챌린지 참여자 수
      */
     long countByChallengeId(Long challengeId);
+
+    // ===== 스케줄러 용 =====
+
+    /**
+     * 챌린지 랭킹 전체 목록 (스케줄러 배치용)
+     */
+    List<ChallengeRanking> findByChallengeIdOrderByRankNoAsc(Long challengeId);
+
+    /** 배치 중복 방지 확인 */
+    boolean existsByChallengeId(Long challengeId);
 }
