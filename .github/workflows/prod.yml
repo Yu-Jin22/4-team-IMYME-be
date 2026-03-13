@@ -3,12 +3,10 @@ name: Backend CI → ECR (Kubernetes Deploy via ArgoCD)
 on:
     pull_request:
         branches:
-            #- main
-            - feat/k8sCI
+            - main
     push:
         branches:
-            #- main
-            - feat/k8sCI
+            - main
 
 permissions:
     contents: read
@@ -89,7 +87,7 @@ jobs:
 
     image-push:
         needs: ci
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/k8sCI'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
 
         steps:
@@ -124,7 +122,7 @@ jobs:
                   platforms: linux/arm64
                   tags: |
                       219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:${{ github.sha }}
-                      219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:yujin-test-latest
+                      219268921033.dkr.ecr.ap-northeast-2.amazonaws.com/imyme-backend:prod-latest
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
 
